@@ -1,9 +1,12 @@
 #include <iostream>
 #include <cmath>
+#include <ranges>
 #include <utility>
 #include <vector>
 #include <set>
+#include <unordered_set>
 #include <functional>
+#include <algorithm>
 
 
 class Value {
@@ -15,7 +18,9 @@ public:
   std::function<void()> _backward;
 
   explicit Value(double data, const std::set<Value*>& children = {}, std::string op = "")
-      : data(data), grad(0), prev(children), op(std::move(op)) {}
+      : data(data), grad(0), prev(children), op(std::move(op)) {
+    _backward = []() {};
+  }
 
   Value operator+(Value other) {
     /*
@@ -42,14 +47,33 @@ public:
     return out;
   }
 
+  void operator-() { this->data = -(this->data); }
+
+  Value operator-(Value& other) {
+    /*
+     * z = x - y
+     * dz/dx = 1, dz/dy = -1
+     * df(z)/dx = (df/dz)(dz/dx) = (df/dz) * 1 = df/dz
+     * df(z)/dy = (df/dz)(dz/dy) = (df/dz) * -1 = -df/dz
+     */
+    auto out = Value(data - other.data, {const_cast<Value*>(this), const_cast<Value*>(&other)}, "-");
+    out._backward = [&other, &out, this]() {
+      this->grad += out.grad;
+      other.grad -= out.grad;
+    };
+
+    return out;
+  }
+
   Value operator*(Value other) {
     /*
       z = x * y
       dz/dx = y, dz/dy = x
       df(z)/dx = (df/dz)(dz/dx) = (df/dz) * y = out.grad * other.data
       df(z)/dy = (df/dz)(dz/dy) = (df/dz) * x = out.grad * this.data
-     */
-    auto out = Value(data * other.data, {const_cast<Value*>(this), &other}, "*");
+    */
+
+    auto out = Value(data * other.data, {const_cast<Value*>(this), &other} , "*");
     out._backward = [&other, &out, this]() {
       grad += other.data * out.grad;
       other.grad += data * out.grad;
@@ -62,18 +86,33 @@ public:
     os << "Value(data: " << value.data << ", grad: " << value.grad << ")";
     return os;
   }
+
+  void backward() {
+    auto topo = std::vector<Value*>();  // topological order
+    auto visited = std::unordered_set<Value*>();  // keep track of unique_visited nodes; no duplicates
+
+    std::function<void(Value*)> build_topo = [&](Value* root) {
+      if (!visited.count(root)) {
+        visited.insert(root);
+        for (auto child: root->prev)  // for each child of root
+          build_topo(child);  // recurse
+        topo.emplace_back(root);  // this might be needed instead of the above
+      }
+    };
+
+    build_topo(this);
+    this->grad = 1.0;  // set grad of loss to zero
+
+    std::reverse(topo.begin(), topo.end());
+    for (auto v: topo) {
+      std::cout << *v << '\n';
+      v->_backward();
+      std::cout << *v << '\n';
+    }
+  }
+
 };
 
-//
-//
-//  Value operator-(const Value& other) const {
-//    return Value(data - other.data, {const_cast<Value*>(this), const_cast<Value*>(&other)}, "-");
-//  }
-//
-//  Value pow(double power) const {
-//    double result = std::pow(data, power);
-//    return Value(result, {const_cast<Value*>(this)}, "**" + std::to_string(power));
-//  }
 //
 //  Value tanh() const {
 //    double t = std::tanh(data);
@@ -118,32 +157,28 @@ public:
 //  }
 //};
 
+
 int main() {
-  Value a(1.0);
-  Value b(2.0);
-  Value c(3.0);
-  Value d(4.0);
+  Value a(0.5);
+  Value b(0.6);
+  auto z = a * b;
+  z.backward();
 
+//  std::cout << a << std::endl;
+//  std::cout << b << std::endl;
+//  std::cout << z << std::endl;
+//
+//  Value c(3.0);
+//  Value d(4.0);
+//  std::cout << c << std::endl;
+//  -c;
+//  std::cout << c << std::endl;
   // set grads
-  a.grad = 1.0;
-  b.grad = 1.0;
-
-  auto loss_func = [&]() -> double {
-    return std::pow((a.data - b.data), 2);
-  };
-
-  auto loss = Value(loss_func(), {&a, &b});
-  loss.grad = 1.0;
-  std::cout << "loss: " << loss << std::endl;
-  loss._backward;
+  std::cout << "z: " << z << '\n';
+  std::cout << "a: " << a << '\n';
+  std::cout << "b: " << b << '\n';
   // Perform backward propagation
-  auto z = a + b;
-  z = z * c;
-  z._backward();
 
-  std::cout << a  << std::endl;
-  std::cout << b << std::endl;
-  std::cout << z << std::endl;
 
   return 0;
 }
