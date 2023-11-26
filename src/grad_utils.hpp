@@ -1,11 +1,7 @@
 #ifndef GRAD_UTILS_HPP
 #define GRAD_UTILS_HPP
 
-#include "tensor.hpp"
-
-template<typename T>
-class BaseTensor;
-
+template<typename T> class BaseTensor;
 
 template<typename T>
 class RegisterGradient {
@@ -22,13 +18,13 @@ public:
     std::function<void()> backward_function;
     switch (op) {
       case Operation::ADD:
-        backward_function = [this_ptr, other_ptr, out_ptr]() {
+        backward_function = [this_ptr, other_ptr, out_ptr] {
           this_ptr->get_grad() += out_ptr->get_grad();
           other_ptr->get_grad() += out_ptr->get_grad();
         };
         break;
       case Operation::SUBTRACT:
-        backward_function = [this_ptr, other_ptr, out_ptr]() {
+        backward_function = [this_ptr, other_ptr, out_ptr] {
           this_ptr->get_grad() += out_ptr->get_grad();
           other_ptr->get_grad() -= out_ptr->get_grad();
         };
@@ -48,7 +44,7 @@ public:
       default:
         // Default to do nothing if operation is not recognized
         std::cout << "WARNING! Setting default backward_function - [](){}\n";
-        backward_function = []() {
+        backward_function = [] {
         };
         break;
     }
