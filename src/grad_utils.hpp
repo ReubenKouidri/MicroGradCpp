@@ -13,6 +13,7 @@ namespace gradient_ops {
     SUBTRACT,
     MULTIPLY,
     DIVIDE,
+    EXP,
   };
 
   enum class Activation {
@@ -22,30 +23,8 @@ namespace gradient_ops {
   };
 
   template<typename T>
-  class ActivationOutput {
-  public:
-    static T func(const T data, const Activation& act) {
-      switch (act) {
-        case Activation::RELU:
-          return std::max(data, static_cast<T>(0));
-        case Activation::TANH:
-          return std::tanh(data);
-        default:
-          std::cout << "No activaiton\n";
-          return static_cast<T>(0);
-      }
-    }
-  };
-
-  template<typename T>
   class RegisterGradient {
   public:
-    // static void register_backward(BaseTensor<T>* this_ptr, const Activation& activation_t) {
-    //   auto output = Tensor(ActivationOutput<T>::func(this_ptr), {this_ptr}, activation_t);
-    //   BaseTensor<T>* out_ptr = output.get_ptr();
-    //   register_backward(this_ptr, out_ptr, activation_t);
-    // }
-
     static void register_backward(BaseTensor<T>* this_ptr, BaseTensor<T>* out_ptr, const Activation& act) {
       std::function<void()> backward_function = []{};
       switch (act) {
@@ -64,6 +43,19 @@ namespace gradient_ops {
           break;
       }
       out_ptr->set_backward(backward_function);
+    }
+    static void register_backward(BaseTensor<T>* obj_ptr, BaseTensor<T>* out_ptr, const Operation& op, const int e) {
+      std::function<void()> backward_function = []{};
+      switch (op) {
+        case Operation::EXP:
+          backward_function = [obj_ptr, out_ptr, e] {
+            obj_ptr->get_grad() += out_ptr->get_grad() * e * std::pow(obj_ptr->get_data(), e - 1);
+          };
+        break;
+        default:
+          std::cout << "Error registering exp backward func\n";
+        out_ptr->set_backward(backward_function);
+      }
     }
 
     static void register_backward(BaseTensor<T>* this_ptr, BaseTensor<T>* other_ptr, BaseTensor<T>* out_ptr,
