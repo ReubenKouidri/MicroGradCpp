@@ -78,3 +78,35 @@ TEST_F(TensorTest, GradientRegistrationDiv) {
   EXPECT_EQ(t2.get_data(), 2.0);
   EXPECT_EQ(t2.get_grad(), -0.25);
 }
+
+TEST_F(TensorTest, ActivationRelu) {
+  const auto t5 = t2 + t3;
+  auto a = t5.activation_output(Activation::RELU);
+  EXPECT_EQ(a.get_data(), 5.0);
+  EXPECT_EQ(t2.get_data(), 2.0);
+  EXPECT_EQ(t3.get_data(), 3.0);
+  // this = t5, out = a
+  a.backward();
+  EXPECT_EQ(a.get_grad(), 1.0);
+  EXPECT_EQ(a.get_data(), 5.0);
+  // (1 - 5^2) * 1
+  EXPECT_EQ(t5.get_grad(), 5.0);
+  EXPECT_EQ(t5.get_data(), 5.0);
+}
+
+TEST_F(TensorTest, ActivationTanh) {
+  const auto t5 = t2 + t3;
+  auto a = t5.activation_output(Activation::TANH);
+  EXPECT_NEAR(a.get_data(), 1.0, 0.001);
+  EXPECT_EQ(t2.get_data(), 2.0);
+  EXPECT_EQ(t3.get_data(), 3.0);
+  // this = t5, out = a
+  a.backward();
+  EXPECT_EQ(a.get_grad(), 1.0);
+  EXPECT_NEAR(a.get_data(), 1.0, 0.001);
+  // (1 - a^2) * 1
+  EXPECT_NEAR(t5.get_grad(), 0.0, 0.001);
+  EXPECT_EQ(t5.get_data(), 5.0);
+  EXPECT_EQ(t2.get_data(), 2.0);
+  EXPECT_EQ(t3.get_data(), 3.0);
+}
