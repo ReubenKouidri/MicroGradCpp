@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
-#include "../src/neuron.hpp"
-#include "../src/value.hpp"
+#include "../src/module.hpp"
 
 class MLPTest : public ::testing::Test {
 protected:
