@@ -1,8 +1,8 @@
 #ifndef GRAD_UTILS_HPP
 #define GRAD_UTILS_HPP
 
-template<typename T> class BaseTensor;
-template<typename T> class Tensor;
+template<typename T> class Value_;
+// template<typename T> class Value;
 
 // An activation function acts on this_ptr's data and returns an output tensor
 // It registers the gradient function of the output
@@ -23,9 +23,25 @@ namespace gradient_ops {
   };
 
   template<typename T>
+  class ActivationOutput {
+  public:
+    static T func(const T data, const Activation& act) {
+      switch (act) {
+        case Activation::RELU:
+          return std::max(data, static_cast<T>(0));
+        case Activation::TANH:
+          return std::tanh(data);
+        default:
+          std::cout << "No activaiton\n";
+          return static_cast<T>(0);
+      }
+    }
+  };
+
+  template<typename T>
   class RegisterGradient {
   public:
-    static void register_backward(BaseTensor<T>* this_ptr, BaseTensor<T>* out_ptr, const Activation& act) {
+    static void register_backward(Value_<T>* this_ptr, Value_<T>* out_ptr, const Activation& act) {
       std::function<void()> backward_function = []{};
       switch (act) {
         case Activation::RELU:
@@ -44,7 +60,7 @@ namespace gradient_ops {
       }
       out_ptr->set_backward(backward_function);
     }
-    static void register_backward(BaseTensor<T>* obj_ptr, BaseTensor<T>* out_ptr, const Operation& op, const int e) {
+    static void register_backward(Value_<T>* obj_ptr, Value_<T>* out_ptr, const Operation& op, const int e) {
       std::function<void()> backward_function = []{};
       switch (op) {
         case Operation::EXP:
@@ -58,7 +74,7 @@ namespace gradient_ops {
       }
     }
 
-    static void register_backward(BaseTensor<T>* this_ptr, BaseTensor<T>* other_ptr, BaseTensor<T>* out_ptr,
+    static void register_backward(Value_<T>* this_ptr, Value_<T>* other_ptr, Value_<T>* out_ptr,
                                   const Operation& op) {
       std::function<void()> backward_function = []{};
       switch (op) {
