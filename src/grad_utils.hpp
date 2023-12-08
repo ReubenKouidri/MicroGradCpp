@@ -2,10 +2,7 @@
 #define GRAD_UTILS_HPP
 
 template<typename T> class Value_;
-// template<typename T> class Value;
-
-// An activation function acts on this_ptr's data and returns an output tensor
-// It registers the gradient function of the output
+template<typename T> class Value;
 
 namespace gradient_ops {
   enum class Operation {
@@ -39,18 +36,21 @@ namespace gradient_ops {
   };
 
   template<typename T>
-  class RegisterGradient {
+  class Register {
   public:
-    static void register_backward(Value_<T>* this_ptr, Value_<T>* out_ptr, const Activation& act) {
+    static void register_backward(Value_<T>* this_ptr, Value<T>& out, const Activation& act) {
       std::function<void()> backward_function = []{};
+      Value_<T>* out_ptr = out.get_ptr().get();
       switch (act) {
         case Activation::RELU:
           backward_function = [this_ptr, out_ptr] {
+            // std::cout << "relu\n";
             this_ptr->get_grad() += out_ptr->get_data();
           };
           break;
         case Activation::TANH:
           backward_function = [this_ptr, out_ptr] {
+            std::cout << "tanh\n";
             this_ptr->get_grad() += (1 - std::pow(out_ptr->get_data(), 2)) * out_ptr->get_grad();
           };
           break;
@@ -58,10 +58,11 @@ namespace gradient_ops {
           std::cout <<  "WARNING! No activation set\n";
           break;
       }
-      out_ptr->set_backward(backward_function);
+      out.set_backward(backward_function);
     }
-    static void register_backward(Value_<T>* obj_ptr, Value_<T>* out_ptr, const Operation& op, const int e) {
+    static void register_backward(Value_<T>* obj_ptr, Value<T>& out, const Operation& op, const int e) {
       std::function<void()> backward_function = []{};
+      Value_<T>* out_ptr = out.get_ptr().get();
       switch (op) {
         case Operation::EXP:
           backward_function = [obj_ptr, out_ptr, e] {
@@ -70,13 +71,13 @@ namespace gradient_ops {
         break;
         default:
           std::cout << "Error registering exp backward func\n";
-        out_ptr->set_backward(backward_function);
+        out.set_backward(backward_function);
       }
     }
 
-    static void register_backward(Value_<T>* this_ptr, Value_<T>* other_ptr, Value_<T>* out_ptr,
-                                  const Operation& op) {
-      std::function<void()> backward_function = []{};
+    static void register_backward(Value_<T>* this_ptr, Value_<T>* other_ptr, Value<T>& out, const Operation& op) {
+      std::function<void()> backward_function = [](){ return; };
+      Value_<T>* out_ptr = out.get_ptr().get();
       switch (op) {
         case Operation::ADD:
           backward_function = [this_ptr, other_ptr, out_ptr] {
@@ -92,6 +93,7 @@ namespace gradient_ops {
           break;
         case Operation::MULTIPLY:
           backward_function = [this_ptr, other_ptr, out_ptr] {
+            std::cout << "back func multiply\n";
             this_ptr->get_grad() += other_ptr->get_data() * out_ptr->get_grad();
             other_ptr->get_grad() += this_ptr->get_data() * out_ptr->get_grad();
           };
@@ -106,7 +108,7 @@ namespace gradient_ops {
           std::cout << "WARNING! Setting default backward_function - [](){}\n";
           break;
       }
-      out_ptr->set_backward(backward_function);
+      out.set_backward(backward_function);
     }
   };
 } // namespace gradient_ops
