@@ -7,45 +7,41 @@
 template<class T>
 class MSELoss {
   MLP<T> network_;
-  std::vector<Value<T>> targets_;
   double learning_rate_{};
-  Value<T> value_ = Value<T>(0.0);
 public:
-  explicit MSELoss(const MLP<T>& network, const std::vector<T>& targets, const double learning_rate)
-    : MSELoss(network, convert_targets(targets), learning_rate) {
-  }
-  explicit MSELoss(const MLP<T>& network, const std::vector<Value<T>>& targets, const double learning_rate)
+  explicit MSELoss(const MLP<T>& network, const double learning_rate)
     : network_(network),
-      targets_(targets),
       learning_rate_(learning_rate) {
   }
-  std::vector<Value<T>> convert_targets(const std::vector<T>& targets) const {
-    std::vector<Value<T>> new_targets;
-    new_targets.reserve(targets.size());
-    for (const auto& t : targets)
-      new_targets.emplace_back(Value<T>(t));
-    return new_targets;
-  }
-  void compute_loss(std::vector<Value<T>>& input) {
+
+  Value<T> compute_loss(const std::vector<Value<T>>& input, const std::vector<Value<T>>& targets) {
     auto output = network_(input);
+    auto loss = Value<T>(0.0);
     for (size_t i = 0; i < output.size(); i++) {
-      auto diff = output[i] - targets_[i];
+      auto diff = output[i] - targets[i];
       auto temp = pow(diff, static_cast<T>(2));
-      value_ = value_ + temp;
+      loss = loss + temp;
     }
-    value_ = value_ / output.size();
+    loss = loss / output.size();
+    std::cout << "Output: " << output << "\nLoss: " << loss << "\n\n";
+    return loss;
   }
 
-  void compute_loss(std::vector<T>& input) {
+  std::vector<Value<T>> convert(const std::vector<T>& input) {
     std::vector<Value<T>> new_inputs;
     new_inputs.reserve(input.size());
     for (const auto& num : input) {
       new_inputs.emplace_back(num);
     }
-    compute_loss(new_inputs);
+    return new_inputs;
   }
-  const T& get() { return value_.get_data(); }
-  void backward() { value_.backward(); }
+
+  Value<T> compute_loss(const std::vector<T>& input, const std::vector<T>& targets) {
+    auto new_inputs = convert(input);
+    auto new_targets = convert(targets);
+    return compute_loss(new_inputs, new_targets);
+  }
+
   void step() const { network_.step(learning_rate_); }
   void zero_grad() const { network_.zero_grad(); }
 };
