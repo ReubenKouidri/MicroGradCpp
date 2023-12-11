@@ -44,13 +44,12 @@ namespace gradient_ops {
       switch (act) {
         case Activation::RELU:
           backward_function = [this_ptr, out_ptr] {
-            // std::cout << "relu\n";
-            this_ptr->get_grad() += out_ptr->get_data();
+            if (this_ptr->get_data() > static_cast<T>(0))
+              this_ptr->get_grad() += out_ptr->get_grad();
           };
           break;
         case Activation::TANH:
           backward_function = [this_ptr, out_ptr] {
-            std::cout << "tanh\n";
             this_ptr->get_grad() += (1 - std::pow(out_ptr->get_data(), 2)) * out_ptr->get_grad();
           };
           break;
