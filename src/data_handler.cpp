@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <unordered_set>
-#include "data_handler.hpp"
+#include "../include/data_handler.hpp"
 
 DataHandler::DataHandler() {
   data_array_ = new std::vector<Data*>;
@@ -108,6 +108,9 @@ void DataHandler::count_classes() {
     std::cout << "Label: " << static_cast<int>(k) << ", count: " << v << '\n';
   }
 }
+
+size_t DataHandler::image_size() const { return feature_vector_size_; }
+size_t DataHandler::num_classes() const { return num_classes_; }
 
 const std::vector<Data*>* const DataHandler::get_training_data() const { return training_data_; }
 const std::vector<Data*>* const DataHandler::get_validation_data() const { return validation_data_; }

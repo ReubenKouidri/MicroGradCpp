@@ -1,4 +1,4 @@
-#include "data.hpp"
+#include "../include/data.hpp"
 
 Data::Data() { feature_vector_ = new std::vector<uint8_t>; }
 Data::Data(const size_t sz) { feature_vector_ = new std::vector<uint8_t>(sz); }
