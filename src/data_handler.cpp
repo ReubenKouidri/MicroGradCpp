@@ -41,10 +41,12 @@ void DataHandler::read_feature_vector(const std::string& path) {
 
   while (bytes_file) {
     auto* d = new Data(image_size);
-    if (!bytes_file.read(reinterpret_cast<char*>(d->get_feature_vector()->data()), static_cast<long>(image_size))) {
+    std::vector<unsigned char> arr(image_size);
+    if (!bytes_file.read(reinterpret_cast<char*>(arr.data()), static_cast<long>(image_size))) {
       delete d;
       break;
     }
+    d->get_feature_vector()->assign(arr.begin(), arr.end());
     data_array_->emplace_back(d);
   }
   total_length_ = header[1];
