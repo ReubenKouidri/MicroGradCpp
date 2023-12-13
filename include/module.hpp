@@ -21,8 +21,6 @@ public:
   Module& operator=(const Module& other) = default;
   Module& operator=(Module&& other) noexcept = default;
   [[nodiscard]] virtual ParamVector<T> get_parameters() const = 0;
-  // Output<T> virtual operator()(const std::vector<Value<T>>& input) const = 0;
-  // Output<T> virtual operator()(const std::vector<T>& input) const = 0;
 };
 
 // Neuron class inheriting from Module
@@ -41,12 +39,19 @@ public:
     activation_ = other.activation_;
   }
   ~Neuron() override { weights_.clear(); }
-  explicit Neuron(const size_t nin) {
+  explicit Neuron(const size_t nin, const Activation& activation)
+    : activation_(activation) {
+    // He initialization: normal distribution with mean = 0 and std_dev = sqrt(2/nin)
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::normal_distribution<T> dist(0, std::sqrt(2.0 / nin));
+
     for (size_t i = 0; i < nin; i++) {
-      weights_.emplace_back(Value<T>());
+      weights_.emplace_back(Value<T>(dist(gen))); // Use He initialization for weights
     }
-    bias_ = Value<T>();
+    bias_ = Value<T>(1e-7); // Bias can still be initialized to 0 or small random values
   }
+
   ParamVector<T> get_parameters() const override {
     ParamVector<T> retvec;
     retvec.reserve(weights_.size() + 1);
@@ -56,38 +61,38 @@ public:
     retvec.emplace_back(std::make_shared<Value<T>>(bias_));
     return retvec;
   }
+
   Value<T> operator()(const std::vector<Value<T>>& input) const {
     if (input.size() != weights_.size()) {
       throw std::invalid_argument("Vector sizes must be of equal length for dot product calculation.");
     }
     Value<T> rval = bias_;
     for (size_t i = 0; i < input.size(); i++) {
-      auto temp = input[i] * weights_[i];
-      rval = rval + temp;
+      rval += input[i] * weights_[i];
     }
     return rval;
   }
 
   Value<T> operator()(const std::vector<T>& input) const {
-    std::vector<Value<T>> new_input;
-    for (const auto& i : input) {
-      new_input.emplace_back(Value<T>(i));
+    Value<T> rval = bias_;
+    for (size_t i = 0; i < input.size(); i++) {
+      rval += input[i] * weights_[i];
     }
-    return operator()(new_input);
+    return rval;
   }
 };
 
 
 template<class T>
 class Layer final: public Module<T> {
-  size_t nin_;
-  size_t nout_;
   std::vector<Neuron<T>> neurons_;
+  Activation activation_;
 public:
-  Layer(const size_t nin, const size_t nout): nin_(nin), nout_(nout) {
+  Layer(const size_t nin, const size_t nout, const Activation& activation)
+    : activation_(activation) {
     neurons_.reserve(nout);
     for (size_t i = 0; i < nout; i++) {
-      neurons_.emplace_back(Neuron<T>(nin));
+      neurons_.emplace_back(Neuron<T>(nin, activation));
     }
   }
   ~Layer() override { neurons_.clear(); }
@@ -97,10 +102,26 @@ public:
     for (const auto& n: neurons_) {
       output.emplace_back(n(inputs));
     }
+    if (activation_ == Activation::SOFTMAX) {
+      auto sum = Value(0.0);
+      for (auto& o: output) {
+        o = o.vexp();
+        sum += o;
+      }
+      for (auto& o: output) {
+        o /= sum;
+      }
+    }
     return output;
   }
-  Output<T> operator()(const std::vector<T>& inputs) const {
-    return operator()(static_cast<Value<T>>(inputs));
+
+  Output<T> operator()(const std::vector<T>& input) const {
+    std::vector<Value<T>> new_input;
+    new_input.reserve(input.size());
+    for (const auto t : input) {
+      new_input.emplace_back(Value(t));
+    }
+    return operator()(new_input);
   }
   ParamVector<T> get_parameters() const override {
     ParamVector<T> params;
@@ -133,6 +154,9 @@ public:
       layers_.emplace_back(sizes[idx], sizes[idx + 1]);
     }
   }
+
+  explicit MLP(std::vector<Layer<T>> layers) : layers_(std::move(layers)) {}
+
   ParamVector<T> get_parameters() const override {
     ParamVector<T> params;
     for (const auto& l: layers_) {
@@ -160,22 +184,14 @@ public:
     return output;
   }
 
-  Output<T> operator()(const std::vector<T>& input) const {
-    auto output = layers_[0](input);
-    for (auto it = layers_.begin() + 1; it != layers_.end(); ++it) {
-      output = (*it)(output);
-    }
-    return output;
-  }
-
   template<class C>
   Output<T> operator()(const std::vector<C>& input) const {
-    std::vector<T> new_inputs;
-    new_inputs.reserve(input.size());
+    std::vector<Value<T>> new_input;
+    new_input.reserve(input.size());
     for (const auto c : input) {
-      new_inputs.emplace_back(static_cast<T>(c));
+      new_input.emplace_back(Value(static_cast<T>(c)));
     }
-    return operator()(input);
+    return operator()(new_input);
   }
 };
 
