@@ -55,3 +55,15 @@ TEST_F(DataHandlerTest, count_classes) {
   dh.print_class_info();
 }
 
+TEST_F(DataHandlerTest, normalise_data) {
+  dh.read_feature_vector(image_file);
+  dh.read_feature_labels(label_file);
+  dh.normalise_data();
+  dh.split_data();
+  const auto data = dh.get_training_data()->at(0);
+  for (const auto v : *data->get_feature_vector()) {
+    ASSERT_GE(v, 0.0);
+    ASSERT_LE(v, 1.0);
+  }
+}
+
