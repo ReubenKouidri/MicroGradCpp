@@ -3,3 +3,4 @@ CMakeLists.txt
 build/
 .idea/
 *.DS_Store
+CMakeFiles/
