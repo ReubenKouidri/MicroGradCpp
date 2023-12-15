@@ -7,22 +7,16 @@ template<typename T> class Value_;
 template<typename T> class Value;
 
 namespace gradient_ops {
+
   enum class Operation {
-    ADD,
-    SUBTRACT,
-    MULTIPLY,
-    DIVIDE,
-    EXP,
+    ADD, SUBTRACT, MULTIPLY, DIVIDE, EXP,
   };
 
   enum class Activation {
-    TANH,
-    RELU,
-    SIGMOID,
+    TANH, RELU, SIGMOID, SOFTMAX,
   };
 
-  template<typename T>
-  class ActivationOutput {
+  template<typename T> class ActivationOutput {
   public:
     static T func(const T data, const Activation& act) {
       switch (act) {
@@ -37,8 +31,7 @@ namespace gradient_ops {
     }
   };
 
-  template<typename T>
-  class Register {
+  template<typename T> class Register {
   public:
     static void register_backward(Value_<T>* this_ptr, Value<T>& out, const Activation& act) {
       std::function<void()> backward_function = []{};
