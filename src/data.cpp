@@ -2,8 +2,7 @@
 
 Data::Data() { feature_vector_ = new std::vector<double>; }
 Data::Data(const size_t sz) {
-  feature_vector_ = new std::vector<double>;
-  feature_vector_->reserve(sz);
+  feature_vector_ = new std::vector<double>(sz);
 }
 
 Data::~Data() {
