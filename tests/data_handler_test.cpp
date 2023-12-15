@@ -2,7 +2,7 @@
 #include <fstream>
 #include "../include/data_handler.hpp"
 
-class DataHandlerTest : public ::testing::Test {
+class DataHandlerTest : public testing::Test {
 protected:
   void SetUp() override {
   }
