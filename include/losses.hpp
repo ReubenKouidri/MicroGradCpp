@@ -1,16 +1,8 @@
 #ifndef LOSSES_HPP
 #define LOSSES_HPP
 
-#include "data.hpp"
 #include "value.hpp"
 #include "module.hpp"
-
-/*
-TODO
- *  Make SparseCE work for single input as well as batched input - DONE
- *  Make CCE work for single input as well as batched input - DONE
- *  Make MSE work for single input as well as batched input
-*/
 
 // Base class to inherit fromx
 template<class T, class Target_Tp>
@@ -125,44 +117,5 @@ public:
   }
   using Loss::compute_loss;
 };
-
-// template<class T>
-// class CrossEntropyLoss final : public Loss<T> {
-// public:
-//   using Loss<T>::Loss; // Inherit constructor
-//
-//   Value<T> compute_loss(const std::vector<Value<T>>& input,
-//                         const std::vector<Value<T>>& targets) override {
-//     auto outputs = this->network_(input);
-//
-//     // Find max_output for numerical stability
-//     auto max_output = *std::max_element(outputs.begin(), outputs.end(),
-//                                         [&](const Value<T>& a, const Value<T>& b) {
-//                                           return a < b;
-//                                         });
-//
-//     auto loss = Value<T>(0.0);
-//     for (size_t i = 0; i < outputs.size(); ++i) {
-//       auto sum_exp = Value<T>(0.0);
-//       for (const auto& output: outputs) {
-//         sum_exp += vexp(output - max_output);
-//       }
-//
-//       auto log_sum_exp = vlog(max_output + sum_exp);
-//       loss += -outputs[i] * targets[i] + log_sum_exp;
-//     }
-//
-//     return loss / static_cast<T>(outputs.size());
-//   }
-//
-//   Value<T> compute_loss(const std::vector<T>& input,
-//                         const std::vector<T>& target) {
-//     auto new_input = std::vector<Value<T>>(input.size());
-//     auto new_targets = std::vector<Value<T>>(target.size());
-//     std::ranges::transform(input, new_input.begin(), [](T elem) { return Value<T>(elem); });
-//     std::ranges::transform(target, new_targets.begin(), [](T elem) { return Value<T>(elem); });
-//     return compute_loss(new_input, new_targets);
-//   }
-// };
 
 #endif //LOSSES_HPP
