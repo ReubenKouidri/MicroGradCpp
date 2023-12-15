@@ -1,18 +1,18 @@
 #ifndef VALUE_HPP
 #define VALUE_HPP
 
+#include <cmath>
 #include <vector>
 #include <set>
 #include <functional>
 #include <ranges>
-#include <random>
 #include "grad_utils.hpp"
 
 const std::function<void()> do_nothing = [](){ return; };
 
-template<class T>
+template<typename T>
 class Value_ {
-  template <class C> friend class Value;
+  template <typename C> friend class Value;
 
   template<typename C>
   friend std::ostream& operator<<(std::ostream& os, const Value_<C>& val) {
@@ -69,44 +69,38 @@ public:
       node->backward_();
     }
   }
+
 };
 
 
 using namespace gradient_ops;
 
-template<class T>
+template<typename T>
 class Value {
-  static T rng() {
-    static std::random_device rand;
-    static std::mt19937 gen(rand());
-    static std::uniform_real_distribution<T> dist(-1, 1);
-    return dist(gen);
-  }
-
   template<typename C> friend std::ostream& operator<<(std::ostream& os, const Value<C>& val) {
     os << "Value(" << val.get_data() << ", " << val.get_grad() << ")";
     return os;
   }
   // 'right-op' overloads
-  template<class C> friend Value<C> operator+(C num, const Value<C>& val) { return val + num; }
-  template<class C> friend Value<C> operator-(C num, const Value<C>& val) { return val - num; }
-  template<class C> friend Value<C> operator*(C num, const Value<C>& val) { return val * num; }
-  template<class C> friend Value<C> operator/(C num, const Value<C>& val) { return val / num; }
+  template<typename C> friend Value<C> operator+(C num, const Value<C>& val) { return val + num; }
+  template<typename C> friend Value<C> operator-(C num, const Value<C>& val) { return val - num; }
+  template<typename C> friend Value<C> operator*(C num, const Value<C>& val) { return val * num; }
+  template<typename C> friend Value<C> operator/(C num, const Value<C>& val) { return val / num; }
 
-  template<class C>
-  friend Value<C> pow(const Value<C>& obj, const C e) {
+  template<typename C>
+  friend Value pow(const Value& obj, const C e) {
     auto out = Value(std::pow(obj.get_data(), e), {obj.get_ptr()});
-    Value_<C>* obj_ptr = obj.get_ptr().get();
+    Value_<T>* obj_ptr = obj.get_ptr().get();
     Value_<T>* out_ptr = out.get_ptr().get();
 
-    auto back_ = [=]() {
-      // std::cout << "pow\n";
+    auto back_ = [=] {
       obj_ptr->get_grad() += (e * std::pow(obj_ptr->get_data(), e - static_cast<T>(1))) * out_ptr->get_grad();
     };
     out.set_backward(back_);
     // Register<C>::register_backward(obj_ptr, out, Operation::EXP, e);
     return out;
   }
+
   std::shared_ptr<Value_<T>> ptr_ = nullptr;
 
   Value(const T& data, const std::vector<std::shared_ptr<Value_<T>>>& parents) {
@@ -114,7 +108,7 @@ class Value {
   }
 
 public:
-  Value() { ptr_ = std::make_shared<Value_<T>>(static_cast<T>(rng())); }
+  Value() { ptr_ = std::make_shared<Value_<T>>(static_cast<T>(0)); }
   explicit Value(const T& data) { ptr_ = std::make_shared<Value_<T>>(data); }
   ~Value() { ptr_ = nullptr; }
   Value(const Value& other) { ptr_ = other.ptr_; }
@@ -137,13 +131,53 @@ public:
   void set_backward(std::function<void()> func) const { ptr_->set_backward(func); }
   void backward() const { ptr_->backward(); }
   void zero_grad() { ptr_->grad_ = static_cast<T>(0); }
-  void zero_grad_all() { ptr_->zero_grad_all(); }
   const T& get_data() const { return ptr_->get_data(); }
   const T& get_grad() const { return ptr_->get_grad(); }
   T& get_data() { return ptr_->get_data(); }
   T& get_grad() { return ptr_->get_grad(); }
   void step(const double& learning_rate) { ptr_->step(learning_rate); }
   std::vector<Value_<T>*> build_topo() const { return ptr_->build_topological_order(); }
+
+  friend Value vexp(const Value& operand) {
+    auto result = Value(std::exp(operand.get_data()), {operand.get_ptr()});
+
+    Value_<T>* result_ptr = result.get_ptr().get();
+    Value_<T>* operand_ptr = operand.get_ptr().get();
+
+    auto back_ = [operand_ptr, result_ptr] {
+      operand_ptr->get_grad() += result_ptr->get_grad() * result_ptr->get_data();
+    };
+    result.set_backward(back_);
+    return result;
+  }
+
+  friend Value vlog(const Value& operand) {
+    auto result = Value(std::log(operand.get_data()), {operand.get_ptr()});
+
+    Value_<T>* result_ptr = result.get_ptr().get();
+    Value_<T>* operand_ptr = operand.get_ptr().get();
+
+    auto back_ = [operand_ptr, result_ptr] {
+      operand_ptr->get_grad() += result_ptr->get_grad() / operand_ptr->get_data();
+    };
+    result.set_backward(back_);
+    return result;
+  }
+
+  friend Value relu(const Value& operand) {
+    T new_data = std::max(static_cast<T>(0), operand.get_data());
+    auto result = Value(new_data, {operand.get_ptr()});
+
+    Value_<T>* operand_ptr = operand.get_ptr().get();
+    Value_<T>* result_ptr = result.get_ptr().get();
+
+    auto back_ = [operand_ptr, result_ptr] {
+      if (result_ptr->get_data() > static_cast<T>(0))
+        operand_ptr->get_grad() += result_ptr->get_grad();
+    };
+    result.set_backward(back_);
+    return result;
+  }
 
   Value operator+(const Value& other) const {
     auto out = Value(
@@ -156,7 +190,6 @@ public:
     Value_<T>* out_ptr = out.get_ptr().get();
 
     auto backward_function = [=] {
-      // std::cout << "+\n";
       this_ptr->grad_ += out_ptr->grad_;
       other_ptr->grad_ += out_ptr->grad_;
     };
@@ -164,16 +197,21 @@ public:
     // Register<T>::register_backward(this_ptr, other_ptr, out, Operation::ADD);
     return out;
   }
+
   Value operator+(const T& other) const {
     auto temp = Value(other);
     return operator+(temp);
   }
-  // Value operator+=(const T& other) const {
-  //   return operator+(other);
-  // }
-  // Value operator+=(const Value& other) const {
-  //   return operator+(other);
-  // }
+
+  Value& operator+=(const T& other) {
+    return operator+=(Value(other));
+  }
+
+  Value& operator+=(const Value& other) {
+    *this = *this + other;
+    return *this;
+  }
+
   Value operator-(const Value& other) const {
     auto out = Value(
       get_data() - other.get_data(),
@@ -184,8 +222,6 @@ public:
     Value_<T>* out_ptr = out.get_ptr().get();
 
     auto backward_function = [=] {
-      // TODO: CHECK FUNCS
-      // std::cout << "-\n";
       this_ptr->grad_ += out_ptr->grad_;
       other_ptr->grad_ -= out_ptr->grad_;
     };
@@ -193,10 +229,17 @@ public:
     // Register<T>::register_backward(this_ptr, other_ptr, out, Operation::SUBTRACT);
     return out;
   }
+
   Value operator-(const T& other) const {
     const auto temp = Value(other);
     return operator-(temp);
   }
+
+  Value& operator-=(const Value& other) {
+    *this = *this - other;
+    return *this;
+  }
+
   Value operator/(const Value& other) const {
     auto out = pow(other, static_cast<T>(-1));
     return operator*(out);
@@ -206,9 +249,17 @@ public:
     const auto temp = Value(other);
     return operator/(temp);
   }
-  // Value operator/=(const Value& other) const {
-  //   return operator/(other);
-  // }
+
+  Value& operator/=(const Value& other) {
+    *this = *this / other;
+    return *this;
+  }
+
+  Value& operator/=(const T& other) {
+    auto temp = Value(other);
+    return operator/=(temp);
+  }
+
   Value operator*(const Value& other) const {
     auto out = Value(
       get_data() * other.get_data(),
@@ -224,16 +275,27 @@ public:
     // Register<T>::register_backward(this_ptr, other_ptr, out, Operation::MULTIPLY);
     return out;
   }
-  // Value operator*=(const Value& other) const {
-  //   return operator*(other);
-  // }
+
   Value operator*(const T& other) const {
     const auto temp = Value(other);
     return operator*(temp);
   }
+
+  Value& operator*=(const Value& other) {
+    *this = *this * other;
+    return *this;
+  }
+
+  Value& operator*=(const T& other) {
+    return operator*=(Value(other));
+  }
+
   Value operator-() {
     return operator*(static_cast<T>(-1));
   }
+
+  bool operator>(const Value& other) const { return get_data() > other.get_data(); }
+  bool operator<(const Value& other) const { return !(*this > other); }
 
   Value activation_output(const Activation& act) const {
     const T output_data = ActivationOutput<T>::func(ptr_->get_data(), act);
@@ -242,5 +304,6 @@ public:
     return out;
   }
 };
+
 
 #endif // VALUE_HPP
