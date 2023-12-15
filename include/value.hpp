@@ -24,8 +24,10 @@ class Value_ {
   T grad_ { static_cast<T>(0) };
   std::vector<std::shared_ptr<Value_>> parents_;
   std::function<void()> backward_ = do_nothing ;
+  std::vector<Value_*> topological_order_;
 
 public:
+  bool is_topological_order_computed_ { false };
   Value_(const T& data, const std::vector<std::shared_ptr<Value_>>& parents):
     data_(data), parents_(parents) {}
   explicit Value_(const T& data): data_(data) {}
@@ -62,10 +64,20 @@ public:
     return topological_order;
   }
 
+  void initialise_graph() {
+    if (!is_topological_order_computed_) {
+      topological_order_ = build_topological_order();
+      is_topological_order_computed_ = true;
+    }
+  }
+
   void backward() {
-    const auto order = build_topological_order();
+    if (!is_topological_order_computed_) {
+      topological_order_ = build_topological_order();
+      is_topological_order_computed_ = true;
+    }
     grad_ = static_cast<T>(1); // Set dx/dx=1
-    for (const auto node: std::ranges::reverse_view(order)) {
+    for (const auto node : std::ranges::reverse_view(topological_order_)) {
       node->backward_();
     }
   }
@@ -73,7 +85,7 @@ public:
 };
 
 
-using namespace gradient_ops;
+using namespace ops;
 
 template<typename T>
 class Value {
@@ -90,15 +102,27 @@ class Value {
   template<typename C>
   friend Value pow(const Value& obj, const C e) {
     auto out = Value(std::pow(obj.get_data(), e), {obj.get_ptr()});
-    Value_<T>* obj_ptr = obj.get_ptr().get();
-    Value_<T>* out_ptr = out.get_ptr().get();
-
-    auto back_ = [=] {
-      obj_ptr->get_grad() += (e * std::pow(obj_ptr->get_data(), e - static_cast<T>(1))) * out_ptr->get_grad();
-    };
-    out.set_backward(back_);
-    // Register<C>::register_backward(obj_ptr, out, Operation::EXP, e);
+    register_op(obj, out, UnaryOp::pow, e);
     return out;
+  }
+
+  friend Value vexp(const Value& operand) {
+    auto result = Value(std::exp(operand.get_data()), {operand.get_ptr()});
+    register_op(operand, result, UnaryOp::exp);
+    return result;
+  }
+
+  friend Value vlog(const Value& operand) {
+    auto result = Value(std::log(operand.get_data()), {operand.get_ptr()});
+    register_op(operand, result, UnaryOp::ln);
+    return result;
+  }
+
+  friend Value relu(const Value& operand) {
+    T new_data = std::max(static_cast<T>(0), operand.get_data());
+    auto result = Value(new_data, {operand.get_ptr()});
+    register_op(operand, result, UnaryOp::relu);
+    return result;
   }
 
   std::shared_ptr<Value_<T>> ptr_ = nullptr;
@@ -127,74 +151,34 @@ public:
     return *this;
   }
 
+  template<typename... Args>
+  static void register_op(Args&&... args) {
+    Register<T>::register_op(std::forward<Args>(args)...);
+  }
+
   std::shared_ptr<Value_<T>> get_ptr() const { return ptr_; }
+
   void set_backward(std::function<void()> func) const { ptr_->set_backward(func); }
+
   void backward() const { ptr_->backward(); }
+
   void zero_grad() { ptr_->grad_ = static_cast<T>(0); }
+
   const T& get_data() const { return ptr_->get_data(); }
+
   const T& get_grad() const { return ptr_->get_grad(); }
+
   T& get_data() { return ptr_->get_data(); }
+
   T& get_grad() { return ptr_->get_grad(); }
+
   void step(const double& learning_rate) { ptr_->step(learning_rate); }
+
   std::vector<Value_<T>*> build_topo() const { return ptr_->build_topological_order(); }
 
-  friend Value vexp(const Value& operand) {
-    auto result = Value(std::exp(operand.get_data()), {operand.get_ptr()});
-
-    Value_<T>* result_ptr = result.get_ptr().get();
-    Value_<T>* operand_ptr = operand.get_ptr().get();
-
-    auto back_ = [operand_ptr, result_ptr] {
-      operand_ptr->get_grad() += result_ptr->get_grad() * result_ptr->get_data();
-    };
-    result.set_backward(back_);
-    return result;
-  }
-
-  friend Value vlog(const Value& operand) {
-    auto result = Value(std::log(operand.get_data()), {operand.get_ptr()});
-
-    Value_<T>* result_ptr = result.get_ptr().get();
-    Value_<T>* operand_ptr = operand.get_ptr().get();
-
-    auto back_ = [operand_ptr, result_ptr] {
-      operand_ptr->get_grad() += result_ptr->get_grad() / operand_ptr->get_data();
-    };
-    result.set_backward(back_);
-    return result;
-  }
-
-  friend Value relu(const Value& operand) {
-    T new_data = std::max(static_cast<T>(0), operand.get_data());
-    auto result = Value(new_data, {operand.get_ptr()});
-
-    Value_<T>* operand_ptr = operand.get_ptr().get();
-    Value_<T>* result_ptr = result.get_ptr().get();
-
-    auto back_ = [operand_ptr, result_ptr] {
-      if (result_ptr->get_data() > static_cast<T>(0))
-        operand_ptr->get_grad() += result_ptr->get_grad();
-    };
-    result.set_backward(back_);
-    return result;
-  }
-
   Value operator+(const Value& other) const {
-    auto out = Value(
-      get_data() + other.get_data(),
-      {get_ptr(), other.get_ptr()}
-    );
-
-    Value_<T>* this_ptr = get_ptr().get();
-    Value_<T>* other_ptr = other.get_ptr().get();
-    Value_<T>* out_ptr = out.get_ptr().get();
-
-    auto backward_function = [=] {
-      this_ptr->grad_ += out_ptr->grad_;
-      other_ptr->grad_ += out_ptr->grad_;
-    };
-    out.set_backward(backward_function);
-    // Register<T>::register_backward(this_ptr, other_ptr, out, Operation::ADD);
+    auto out = Value(get_data() + other.get_data(),{get_ptr(), other.get_ptr()});
+    register_op(this, other, out, BinaryOp::add);
     return out;
   }
 
@@ -213,20 +197,8 @@ public:
   }
 
   Value operator-(const Value& other) const {
-    auto out = Value(
-      get_data() - other.get_data(),
-      {get_ptr(), other.get_ptr()}
-    );
-    Value_<T>* this_ptr = get_ptr().get();
-    Value_<T>* other_ptr = other.get_ptr().get();
-    Value_<T>* out_ptr = out.get_ptr().get();
-
-    auto backward_function = [=] {
-      this_ptr->grad_ += out_ptr->grad_;
-      other_ptr->grad_ -= out_ptr->grad_;
-    };
-    out.set_backward(backward_function);
-    // Register<T>::register_backward(this_ptr, other_ptr, out, Operation::SUBTRACT);
+    auto out = Value(get_data() - other.get_data(),{get_ptr(), other.get_ptr()});
+    register_op(this, other, out, BinaryOp::subtract);
     return out;
   }
 
@@ -261,19 +233,9 @@ public:
   }
 
   Value operator*(const Value& other) const {
-    auto out = Value(
-      get_data() * other.get_data(),
-      {get_ptr(), other.get_ptr()});
-    Value_<T>* this_ptr = get_ptr().get();
-    Value_<T>* other_ptr = other.get_ptr().get();
-    Value_<T>* out_ptr = out.get_ptr().get();
-    auto backward_function = [=] {
-      this_ptr->grad_ += other_ptr->data_ * out_ptr->grad_;
-      other_ptr->grad_ += this_ptr->data_ * out_ptr->grad_;
-    };
-    out.set_backward(backward_function);
-    // Register<T>::register_backward(this_ptr, other_ptr, out, Operation::MULTIPLY);
-    return out;
+    auto result = Value(get_data() * other.get_data(), {get_ptr(), other.get_ptr()});
+    register_op(this, other, result, BinaryOp::multiply);
+    return result;
   }
 
   Value operator*(const T& other) const {
@@ -296,14 +258,6 @@ public:
 
   bool operator>(const Value& other) const { return get_data() > other.get_data(); }
   bool operator<(const Value& other) const { return !(*this > other); }
-
-  Value activation_output(const Activation& act) const {
-    const T output_data = ActivationOutput<T>::func(ptr_->get_data(), act);
-    auto out = Value(output_data, {get_ptr()});
-    Register<T>::register_backward(get_ptr().get(), out, act);
-    return out;
-  }
 };
 
-
-#endif // VALUE_HPP
+#endif //VALUE_HPP
