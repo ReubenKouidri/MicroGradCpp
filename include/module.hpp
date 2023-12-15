@@ -14,7 +14,7 @@ using ParamVector = std::vector<std::shared_ptr<Value<T>>>;
 template<class T>
 class Module {
 public:
-  virtual ~Module()= default;
+  virtual ~Module() = default;
   Module() = default;
   Module(const Module& other) = default;
   Module(Module&& other) noexcept = default;
@@ -39,17 +39,31 @@ public:
     activation_ = other.activation_;
   }
   ~Neuron() override { weights_.clear(); }
-  explicit Neuron(const size_t nin, const Activation& activation)
+  explicit Neuron(const size_t nin, const size_t nout, const Activation& activation)
     : activation_(activation) {
-    // He initialization: normal distribution with mean = 0 and std_dev = sqrt(2/nin)
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::normal_distribution<T> dist(0, std::sqrt(2.0 / nin));
+    std::normal_distribution<T> dist;
+
+    switch (activation_) {
+      case Activation::RELU:
+        /* He initialization */
+          dist = std::normal_distribution<T>(0, std::sqrt(2.0 / static_cast<double>(nin)));
+        break;
+      case Activation::SOFTMAX:
+        /* Xavier init */
+        dist = std::normal_distribution<T>(0, std::sqrt(2.0 / static_cast<double>(nin + nout)));
+        break;
+      default:
+        std::cout << "Need to implement init method in Neuron constructor\n";
+        break;
+    }
 
     for (size_t i = 0; i < nin; i++) {
       weights_.emplace_back(Value<T>(dist(gen))); // Use He initialization for weights
     }
-    bias_ = Value<T>(1e-7); // Bias can still be initialized to 0 or small random values
+
+    bias_ = Value<T>(1e-5);
   }
 
   ParamVector<T> get_parameters() const override {
@@ -70,6 +84,8 @@ public:
     for (size_t i = 0; i < input.size(); i++) {
       rval += input[i] * weights_[i];
     }
+    if (activation_ == Activation::RELU)
+      return relu(rval);
     return rval;
   }
 
@@ -92,7 +108,7 @@ public:
     : activation_(activation) {
     neurons_.reserve(nout);
     for (size_t i = 0; i < nout; i++) {
-      neurons_.emplace_back(Neuron<T>(nin, activation));
+      neurons_.emplace_back(Neuron<T>(nin, nout, activation));
     }
   }
   ~Layer() override { neurons_.clear(); }
@@ -103,9 +119,20 @@ public:
       output.emplace_back(n(inputs));
     }
     if (activation_ == Activation::SOFTMAX) {
+      // for numerical stability, subtract max value
+      // this transformation leaves the softmax output invariant
+      auto max_val = *std::max_element(output.begin(), output.end(),
+        [&](const Value<T>& a, const Value<T>& b) {
+        return a < b;
+      });
+
+      for (auto& o : output) {
+        o -= max_val;
+      }
+
       auto sum = Value(0.0);
       for (auto& o: output) {
-        o = o.vexp();
+        o = vexp(o);
         sum += o;
       }
       for (auto& o: output) {
