@@ -79,7 +79,7 @@ TEST_F(ValueTest, GradientRegistrationDiv) {
   EXPECT_EQ(t2.get_grad(), -0.25);
 }
 
-TEST_F(ValueTest, ActivationRelu) {
+TEST_F(ValueTest, Relu) {
   const auto t5 = t2 + t3;
   auto a = relu(t5);
   EXPECT_EQ(a.get_data(), 5.0);
@@ -94,19 +94,32 @@ TEST_F(ValueTest, ActivationRelu) {
   EXPECT_EQ(t5.get_data(), 5.0);
 }
 
-TEST_F(ValueTest, ActivationTanh) {
-  const auto t5 = t2 + t3;
-  auto a = t5.activation_output(Activation::TANH);
-  EXPECT_NEAR(a.get_data(), 1.0, 0.001);
+TEST_F(ValueTest, Pow) {
+  auto t4 = pow(t2, 2);
+  EXPECT_EQ(t4.get_data(), 4.0);
   EXPECT_EQ(t2.get_data(), 2.0);
-  EXPECT_EQ(t3.get_data(), 3.0);
-  // this = t5, out = a
-  a.backward();
-  EXPECT_EQ(a.get_grad(), 1.0);
-  EXPECT_NEAR(a.get_data(), 1.0, 0.001);
-  // (1 - a^2) * 1
-  EXPECT_NEAR(t5.get_grad(), 0.0, 0.001);
-  EXPECT_EQ(t5.get_data(), 5.0);
+  t4.backward();
+  EXPECT_EQ(t4.get_grad(), 1.0);
   EXPECT_EQ(t2.get_data(), 2.0);
-  EXPECT_EQ(t3.get_data(), 3.0);
+  EXPECT_EQ(t2.get_grad(), 4.0);
+}
+
+TEST_F(ValueTest, Exp) {
+  auto t4 = vexp(t2);
+  EXPECT_NEAR(t4.get_data(), 7.38905609893065, 1e-7);
+  EXPECT_EQ(t2.get_data(), 2.0);
+  t4.backward();
+  EXPECT_EQ(t4.get_grad(), 1.0);
+  EXPECT_EQ(t2.get_data(), 2.0);
+  EXPECT_NEAR(t2.get_grad(), 7.38905609893065, 1e-7);
+}
+
+TEST_F(ValueTest, Log) {
+  auto t4 = vlog(t2);
+  EXPECT_NEAR(t4.get_data(), 0.6931471806, 1e-7);
+  EXPECT_EQ(t2.get_data(), 2.0);
+  t4.backward();
+  EXPECT_EQ(t4.get_grad(), 1.0);
+  EXPECT_EQ(t2.get_data(), 2.0);
+  EXPECT_EQ(t2.get_grad(), 0.5);
 }
