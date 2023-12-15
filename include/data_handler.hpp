@@ -22,6 +22,8 @@ class DataHandler {
 
   static void append_data(const std::vector<size_t>&, std::vector<Data*>*, std::vector<Data*>*);
 
+  static std::vector<std::vector<Data*>> batch_dataset(const std::vector<Data*>*, size_t);
+
 public:
   DataHandler();
   ~DataHandler();
@@ -39,6 +41,10 @@ public:
   [[nodiscard]] const std::vector<Data*>* get_training_data() const;
   [[nodiscard]] const std::vector<Data*>* get_validation_data() const;
   [[nodiscard]] const std::vector<Data*>* get_test_data() const;
+  [[nodiscard]] std::vector<std::vector<Data*>> get_batched_training_data(size_t) const;
+  [[nodiscard]] std::vector<std::vector<Data*>> get_batched_validation_data(size_t) const;
+  [[nodiscard]] std::vector<std::vector<Data*>> get_batched_test_data(size_t) const;
+
   void normalise_data() const;
   void print_class_info() const;
 };
