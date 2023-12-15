@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "../src/value.hpp"
+#include "../include/value.hpp"
 
 class ValueTest : public ::testing::Test {
 protected:
@@ -20,7 +20,7 @@ TEST_F(ValueTest, AddOperator) {
 }
 
 TEST_F(ValueTest, NegationOperator) {
-  -t1;
+  t1 = -t1;
   EXPECT_EQ(t1.get_data(), -1.0);
 }
 
@@ -81,7 +81,7 @@ TEST_F(ValueTest, GradientRegistrationDiv) {
 
 TEST_F(ValueTest, ActivationRelu) {
   const auto t5 = t2 + t3;
-  auto a = t5.activation_output(Activation::RELU);
+  auto a = relu(t5);
   EXPECT_EQ(a.get_data(), 5.0);
   EXPECT_EQ(t2.get_data(), 2.0);
   EXPECT_EQ(t3.get_data(), 3.0);
@@ -90,7 +90,7 @@ TEST_F(ValueTest, ActivationRelu) {
   EXPECT_EQ(a.get_grad(), 1.0);
   EXPECT_EQ(a.get_data(), 5.0);
   // (1 - 5^2) * 1
-  EXPECT_EQ(t5.get_grad(), 5.0);
+  EXPECT_EQ(t5.get_grad(), 1.0);
   EXPECT_EQ(t5.get_data(), 5.0);
 }
 
