@@ -133,6 +133,39 @@ const std::vector<Data*>* DataHandler::get_training_data() const { return traini
 const std::vector<Data*>* DataHandler::get_validation_data() const { return validation_data_; }
 const std::vector<Data*>* DataHandler::get_test_data() const { return test_data_; }
 
+std::vector<std::vector<Data*>> DataHandler::batch_dataset(const std::vector<Data*>* dataset,
+                                                           const size_t batch_size) {
+  std::vector<std::vector<Data*>> batched_data;
+
+  if (batch_size == 0 || dataset->empty()) {
+    throw std::runtime_error("Invalid batch size or empty dataset.");
+  }
+
+  const size_t num_batches = (dataset->size() + batch_size - 1) / batch_size;
+  batched_data.reserve(num_batches);
+
+  auto data_iter = dataset->cbegin();
+  for (size_t i = 0; i < num_batches; ++i) {
+    const auto current_batch_size = std::min(batch_size, dataset->size() - i * batch_size);
+    batched_data.emplace_back(data_iter, data_iter + static_cast<long>(current_batch_size));
+    data_iter += static_cast<long>(current_batch_size);
+  }
+  return batched_data;
+}
+
+std::vector<std::vector<Data*>> DataHandler::get_batched_training_data(const size_t batch_size) const {
+  return batch_dataset(training_data_, batch_size);
+}
+
+std::vector<std::vector<Data*>> DataHandler::get_batched_validation_data(const size_t batch_size) const {
+  return batch_dataset(validation_data_, batch_size);
+}
+
+std::vector<std::vector<Data*>> DataHandler::get_batched_test_data(const size_t batch_size) const {
+  return batch_dataset(test_data_, batch_size);
+}
+
+
 void DataHandler::normalise_data() const {
   for (const Data* data : *data_array_) {
     std::vector<double>* feature_vector = data->get_feature_vector();
