@@ -22,7 +22,6 @@ protected:
     }
   }
 
-  const std::vector<size_t> neurons {3, 3, 2};
   const std::vector<double> input {1.0, 0.0, 1.0};
   static constexpr uint8_t tgt = 0;
 
@@ -86,6 +85,7 @@ TEST_F(LossFunctionsTest, test_batched_cce) {
 TEST_F(LossFunctionsTest, test_mse) {
   std::cout << "======================================\n";
   std::cout << "==========TESTING MSE LOSS============\n";
+  std::cout << "======================================\n";
   train_model<decltype(mse_loss),
               decltype(input),
               decltype(tgt)>
@@ -95,6 +95,7 @@ TEST_F(LossFunctionsTest, test_mse) {
 TEST_F(LossFunctionsTest, test_batched_mse) {
   std::cout << "==============================================\n";
   std::cout << "==========TESTING BATCHED MSE LOSS============\n";
+  std::cout << "==============================================\n";
   train_model<decltype(mse_loss),
               decltype(batched_input),
               decltype(batched_tgt)>
