@@ -30,7 +30,7 @@ class Neuron final: public Module<T> {
   // TODO: use node and edge layout
   std::vector<Value<T>> weights_;
   Value<T> bias_;
-  Activation activation_ { Activation::RELU };
+  UnaryOp activation_ { UnaryOp:: relu };
 
 public:
   Neuron(const Neuron& other) {
@@ -39,18 +39,18 @@ public:
     activation_ = other.activation_;
   }
   ~Neuron() override { weights_.clear(); }
-  explicit Neuron(const size_t nin, const size_t nout, const Activation& activation)
+  explicit Neuron(const size_t nin, const size_t nout, const UnaryOp& activation)
     : activation_(activation) {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::normal_distribution<T> dist;
 
     switch (activation_) {
-      case Activation::RELU:
+      case UnaryOp::relu:
         /* He initialization */
           dist = std::normal_distribution<T>(0, std::sqrt(2.0 / static_cast<double>(nin)));
         break;
-      case Activation::SOFTMAX:
+      case UnaryOp::softmax:
         /* Xavier init */
         dist = std::normal_distribution<T>(0, std::sqrt(2.0 / static_cast<double>(nin + nout)));
         break;
@@ -84,7 +84,7 @@ public:
     for (size_t i = 0; i < input.size(); i++) {
       rval += input[i] * weights_[i];
     }
-    if (activation_ == Activation::RELU)
+    if (activation_ == UnaryOp::relu)
       return relu(rval);
     return rval;
   }
@@ -102,9 +102,15 @@ public:
 template<class T>
 class Layer final: public Module<T> {
   std::vector<Neuron<T>> neurons_;
-  Activation activation_;
+  UnaryOp activation_;
 public:
-  Layer(const size_t nin, const size_t nout, const Activation& activation)
+  /*
+  TODO
+   * Weight matrix initialization
+   * forward pass uses W*X to compute output
+   *
+  */
+  Layer(const size_t nin, const size_t nout, const UnaryOp& activation)
     : activation_(activation) {
     neurons_.reserve(nout);
     for (size_t i = 0; i < nout; i++) {
@@ -118,26 +124,23 @@ public:
     for (const auto& n: neurons_) {
       output.emplace_back(n(inputs));
     }
-    if (activation_ == Activation::SOFTMAX) {
+    if (activation_ == UnaryOp::softmax) {
       // for numerical stability, subtract max value
       // this transformation leaves the softmax output invariant
       auto max_val = *std::max_element(output.begin(), output.end(),
-        [&](const Value<T>& a, const Value<T>& b) {
-        return a < b;
-      });
+                                              [&](const Value<T>& a, const Value<T>& b) {
+                                                return a < b;});
 
-      for (auto& o : output) {
+      for (auto& o : output)
         o -= max_val;
-      }
 
       auto sum = Value(0.0);
       for (auto& o: output) {
         o = vexp(o);
         sum += o;
       }
-      for (auto& o: output) {
+      for (auto& o: output)
         o /= sum;
-      }
     }
     return output;
   }
@@ -158,11 +161,21 @@ public:
     }
     return params;
   }
+  [[nodiscard]] size_t get_size() const { return neurons_.size(); }
+  std::vector<Neuron<T>>& get_neurons() { return neurons_; }
 };
 
 template<class T>
 class MLP final: public Module<T> {
   std::vector<Layer<T>> layers_;
+
+  void initialize_graph() {
+    const std::vector<T> dummy_input(layers_.at(0).get_neurons().at(0).get_parameters().size() - 1, static_cast<T>(1.0));
+    auto dummy_output = operator()(dummy_input);
+    for (auto& p : get_parameters()) {
+      p->get_ptr()->initialise_graph();
+    }
+  }
 
 public:
   MLP(const MLP& other) : Module<T>(other), layers_(other.layers_) {}
@@ -175,14 +188,18 @@ public:
     return *this;
   }
   ~MLP() override { layers_.clear(); }
+
   explicit MLP(const std::vector<size_t>& sizes) {
     layers_.reserve(sizes.size());
     for (size_t idx = 0; idx < sizes.size() - 1; ++idx) {
       layers_.emplace_back(sizes[idx], sizes[idx + 1]);
     }
+    initialize_graph();
   }
 
-  explicit MLP(std::vector<Layer<T>> layers) : layers_(std::move(layers)) {}
+  explicit MLP(std::vector<Layer<T>> layers) : layers_(std::move(layers)) {
+    initialize_graph();
+  }
 
   ParamVector<T> get_parameters() const override {
     ParamVector<T> params;
@@ -221,5 +238,6 @@ public:
     return operator()(new_input);
   }
 };
+
 
 #endif //MODULE_HPP
