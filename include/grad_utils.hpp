@@ -6,93 +6,105 @@
 template<typename T> class Value_;
 template<typename T> class Value;
 
-namespace gradient_ops {
+namespace ops {
 
-  enum class Operation {
-    ADD, SUBTRACT, MULTIPLY, DIVIDE, EXP,
+  enum class BinaryOp {
+    add,
+    subtract,
+    multiply,
+    divide,
   };
 
-  enum class Activation {
-    TANH, RELU, SIGMOID, SOFTMAX,
+  enum class UnaryOp {
+    tanh,
+    relu,
+    softmax,
+    sigmoid,
+    exp,
+    ln,
+    pow,
   };
 
-  template<typename T> class ActivationOutput {
+  template<typename T>
+  class Register {
   public:
-    static T func(const T data, const Activation& act) {
-      switch (act) {
-        case Activation::RELU:
-          return std::max(data, static_cast<T>(0));
-        case Activation::TANH:
-          return std::tanh(data);
-        default:
-          std::cout << "No activaiton\n";
-          return static_cast<T>(0);
-      }
-    }
-  };
+    static void register_op(const Value<T>& operand, Value<T>& result, const UnaryOp& op) {
+      Value_<T>* operand_ptr = operand.get_ptr().get();
+      Value_<T>* result_ptr = result.get_ptr().get();
 
-  template<typename T> class Register {
-  public:
-    static void register_backward(Value_<T>* this_ptr, Value<T>& out, const Activation& act) {
-      std::function<void()> backward_function = []{};
-      Value_<T>* out_ptr = out.get_ptr().get();
-      switch (act) {
-        case Activation::RELU:
-          backward_function = [this_ptr, out_ptr] {
-            if (this_ptr->get_data() > static_cast<T>(0))
-              this_ptr->get_grad() += out_ptr->get_grad();
-          };
-          break;
-        case Activation::TANH:
-          backward_function = [this_ptr, out_ptr] {
-            this_ptr->get_grad() += (1 - std::pow(out_ptr->get_data(), 2)) * out_ptr->get_grad();
-          };
-          break;
-        default:
-          std::cout <<  "WARNING! No activation set\n";
-          break;
-      }
-      out.set_backward(backward_function);
-    }
-    static void register_backward(Value_<T>* obj_ptr, Value<T>& out, const Operation& op, const int e) {
-      std::function<void()> backward_function = []{};
-      Value_<T>* out_ptr = out.get_ptr().get();
+      std::function<void()> backward_function;
       switch (op) {
-        case Operation::EXP:
-          backward_function = [obj_ptr, out_ptr, e] {
-            obj_ptr->get_grad() += out_ptr->get_grad() * e * std::pow(obj_ptr->get_data(), e - 1);
+        case UnaryOp::exp:
+          backward_function = [operand_ptr, result_ptr] {
+            operand_ptr->get_grad() += result_ptr->get_grad() * result_ptr->get_data();
           };
-        break;
+          break;
+        case UnaryOp::ln:
+          backward_function = [operand_ptr, result_ptr] {
+            operand_ptr->get_grad() += result_ptr->get_grad() / operand_ptr->get_data();
+          };
+          break;
+        case UnaryOp::relu:
+          backward_function = [operand_ptr, result_ptr] {
+            if (operand_ptr->get_data() > static_cast<T>(0))
+              operand_ptr->get_grad() += result_ptr->get_grad();
+          };
+          break;
+        case UnaryOp::tanh:
+          backward_function = [operand_ptr, result_ptr] {
+            operand_ptr->get_grad() += (1 - std::pow(result_ptr->get_data(), 2)) * result_ptr->get_grad();
+          };
+          break;
         default:
           std::cout << "Error registering exp backward func\n";
-        out.set_backward(backward_function);
+          break;
       }
+      result.set_backward(backward_function);
     }
 
-    static void register_backward(Value_<T>* this_ptr, Value_<T>* other_ptr, Value<T>& out, const Operation& op) {
-      std::function<void()> backward_function = [](){ return; };
-      Value_<T>* out_ptr = out.get_ptr().get();
+    static void register_op(const Value<T>& operand, Value<T>& result, const UnaryOp& op, const int e) {
+      Value_<T>* result_ptr = result.get_ptr().get();
+      Value_<T>* operand_ptr = operand.get_ptr().get();
+
+      std::function<void()> backward_function;
       switch (op) {
-        case Operation::ADD:
+        case UnaryOp::pow:
+          backward_function = [operand_ptr, result_ptr, e] {
+            operand_ptr->get_grad() += (e * std::pow(operand_ptr->get_data(), e - static_cast<T>(1))) * result_ptr->get_grad();
+          };
+          break;
+        default:
+          std::cout << "Error registering exp backward func\n";
+      }
+      result.set_backward(backward_function);
+    }
+
+    static void register_op(const Value<T>* left_operand, const Value<T>& other, Value<T>& out, const BinaryOp& op) {
+      Value_<T>* out_ptr = out.get_ptr().get();
+      Value_<T>* this_ptr = left_operand->get_ptr().get();
+      Value_<T>* other_ptr = other.get_ptr().get();
+
+      std::function<void()> backward_function;
+      switch (op) {
+        case BinaryOp::add:
           backward_function = [this_ptr, other_ptr, out_ptr] {
             this_ptr->get_grad() += out_ptr->get_grad();
             other_ptr->get_grad() += out_ptr->get_grad();
           };
           break;
-        case Operation::SUBTRACT:
+        case BinaryOp::subtract:
           backward_function = [this_ptr, other_ptr, out_ptr] {
             this_ptr->get_grad() += out_ptr->get_grad();
             other_ptr->get_grad() -= out_ptr->get_grad();
           };
           break;
-        case Operation::MULTIPLY:
+        case BinaryOp::multiply:
           backward_function = [this_ptr, other_ptr, out_ptr] {
-            std::cout << "back func multiply\n";
             this_ptr->get_grad() += other_ptr->get_data() * out_ptr->get_grad();
             other_ptr->get_grad() += this_ptr->get_data() * out_ptr->get_grad();
           };
           break;
-        case Operation::DIVIDE:
+        case BinaryOp::divide:
           backward_function = [this_ptr, other_ptr, out_ptr] {
             this_ptr->get_grad() += out_ptr->get_grad() / other_ptr->get_data();
             other_ptr->get_grad() += -1 * this_ptr->get_data() * out_ptr->get_grad() / std::pow(other_ptr->get_data(), 2);
@@ -105,6 +117,6 @@ namespace gradient_ops {
       out.set_backward(backward_function);
     }
   };
-} // namespace gradient_ops
+} // namespace ops
 
 #endif //GRAD_UTILS_HPP
