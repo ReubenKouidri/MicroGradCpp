@@ -34,8 +34,8 @@ protected:
   static constexpr double learning_rate = 0.05;
   static constexpr size_t epochs = 100;
 
-  const Layer<double> layer0 {3, 3, Activation::RELU};
-  const Layer<double> layer1 {3, 2, Activation::SOFTMAX};
+  const Layer<double> layer0 {3, 3, UnaryOp::relu};
+  const Layer<double> layer1 {3, 2, UnaryOp::softmax};
   MLP<double> model { {layer0, layer1} };
   SparseCCELoss<double> sparse_cce_loss {model, learning_rate};
   CCELoss<double> cce_loss {model, learning_rate};
