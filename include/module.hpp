@@ -26,8 +26,6 @@ public:
 // Neuron class inheriting from Module
 template<class T>
 class Neuron final: public Module<T> {
-  // dendrites (weights) feed in
-  // TODO: use node and edge layout
   std::vector<Value<T>> weights_;
   Value<T> bias_;
   UnaryOp activation_ { UnaryOp:: relu };
@@ -78,7 +76,8 @@ public:
 
   Value<T> operator()(const std::vector<Value<T>>& input) const {
     if (input.size() != weights_.size()) {
-      throw std::invalid_argument("Vector sizes must be of equal length for dot product calculation.");
+      throw std::invalid_argument(
+        "Vector sizes must be of equal length for dot product calculation.");
     }
     Value<T> rval = bias_;
     for (size_t i = 0; i < input.size(); i++) {
@@ -104,12 +103,6 @@ class Layer final: public Module<T> {
   std::vector<Neuron<T>> neurons_;
   UnaryOp activation_;
 public:
-  /*
-  TODO
-   * Weight matrix initialization
-   * forward pass uses W*X to compute output
-   *
-  */
   Layer(const size_t nin, const size_t nout, const UnaryOp& activation)
     : activation_(activation) {
     neurons_.reserve(nout);
@@ -169,14 +162,6 @@ template<class T>
 class MLP final: public Module<T> {
   std::vector<Layer<T>> layers_;
 
-  void initialize_graph() {
-    const std::vector<T> dummy_input(layers_.at(0).get_neurons().at(0).get_parameters().size() - 1, static_cast<T>(1.0));
-    auto dummy_output = operator()(dummy_input);
-    for (auto& p : get_parameters()) {
-      p->get_ptr()->initialise_graph();
-    }
-  }
-
 public:
   MLP(const MLP& other) : Module<T>(other), layers_(other.layers_) {}
   MLP(MLP&& other) noexcept:
@@ -194,12 +179,9 @@ public:
     for (size_t idx = 0; idx < sizes.size() - 1; ++idx) {
       layers_.emplace_back(sizes[idx], sizes[idx + 1]);
     }
-    initialize_graph();
   }
 
-  explicit MLP(std::vector<Layer<T>> layers) : layers_(std::move(layers)) {
-    initialize_graph();
-  }
+  explicit MLP(std::vector<Layer<T>> layers) : layers_(std::move(layers)) {}
 
   ParamVector<T> get_parameters() const override {
     ParamVector<T> params;
