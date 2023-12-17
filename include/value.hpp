@@ -26,7 +26,6 @@ class Value_ {
   std::function<void()> backward_ = do_nothing ;
 
 public:
-  bool is_topological_order_computed_ { false };
   Value_(const T& data, const std::vector<std::shared_ptr<Value_>>& parents):
     data_(data), parents_(parents) {}
   explicit Value_(const T& data): data_(data) {}
