@@ -24,7 +24,6 @@ class Value_ {
   T grad_ { static_cast<T>(0) };
   std::vector<std::shared_ptr<Value_>> parents_;
   std::function<void()> backward_ = do_nothing ;
-  std::vector<Value_*> topological_order_;
 
 public:
   bool is_topological_order_computed_ { false };
@@ -64,24 +63,13 @@ public:
     return topological_order;
   }
 
-  void initialise_graph() {
-    if (!is_topological_order_computed_) {
-      topological_order_ = build_topological_order();
-      is_topological_order_computed_ = true;
-    }
-  }
-
   void backward() {
-    if (!is_topological_order_computed_) {
-      topological_order_ = build_topological_order();
-      is_topological_order_computed_ = true;
-    }
+    auto topo = build_topological_order();
     grad_ = static_cast<T>(1); // Set dx/dx=1
-    for (const auto node : std::ranges::reverse_view(topological_order_)) {
+    for (const auto node : std::ranges::reverse_view(topo)) {
       node->backward_();
     }
   }
-
 };
 
 
