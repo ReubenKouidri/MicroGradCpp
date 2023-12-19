@@ -1,25 +1,11 @@
 #include <gtest/gtest.h>
 #include "../include/module.hpp"
 #include "../include/losses.hpp"
+#include "../include/utils.hpp""
 
 class LossFunctionsTest : public testing::Test {
 protected:
   void SetUp() override {
-  }
-
-  template<class Loss, class Input_Tp, class Target_Tp>
-  void train_model(const Input_Tp& input,
-                   const Target_Tp& target,
-                   Loss& loss_function,
-                   const size_t epochs)
-  {
-    for (size_t epoch = 0; epoch < epochs; ++epoch) {
-      auto loss = loss_function.compute_loss(input, target);
-      loss_function.zero_grad();
-      loss.backward();
-      loss_function.step();
-      std::cout << "Loss = " << loss << '\n';
-    }
   }
 
   const std::vector<double> input {1.0, 0.0, 1.0};
@@ -46,58 +32,70 @@ TEST_F(LossFunctionsTest, test_sparse_cce) {
   std::cout << "========================================\n";
   std::cout << "======= TESTING SPARSE CCE LOSS ========\n";
   std::cout << "========================================\n";
-  train_model<decltype(sparse_cce_loss),
-              decltype(input),
-              decltype(tgt)>
-  (input, tgt, sparse_cce_loss, 100);
+  train_model(model,
+                input,
+                tgt,
+                sparse_cce_loss,
+                learning_rate,
+                epochs);
 }
 
 TEST_F(LossFunctionsTest, test_sparse_cce_batched) {
   std::cout << "==============================================\n";
   std::cout << "=======TESTING BATCHED SPARSE CCE LOSS========\n";
   std::cout << "==============================================\n";
-  train_model<decltype(sparse_cce_loss),
-              decltype(batched_input),
-              decltype(batched_tgt)>
-  (batched_input, batched_tgt, sparse_cce_loss, 100);
+  train_model(model,
+                batched_input,
+                batched_tgt,
+                sparse_cce_loss,
+                learning_rate,
+                100);
 }
 
 TEST_F(LossFunctionsTest, test_cce) {
   std::cout << "============================================\n";
   std::cout << "============= TESTING CCE LOSS =============\n";
   std::cout << "============================================\n";
-  train_model<decltype(cce_loss),
-              decltype(input),
-              decltype(categorical_tgt)>
-  (input, categorical_tgt, cce_loss, 100);
+  train_model(model,
+              input,
+              categorical_tgt,
+              cce_loss,
+              learning_rate,
+              100);
 }
 
 TEST_F(LossFunctionsTest, test_batched_cce) {
   std::cout << "=============================================\n";
   std::cout << "========= TESTING BATCHED CCE LOSS ==========\n";
   std::cout << "=============================================\n";
-  train_model<decltype(cce_loss),
-              decltype(batched_input),
-              decltype(batched_categorical_tgt)>
-  (batched_input, batched_categorical_tgt, cce_loss, 100);
+  train_model(model,
+                 batched_input,
+                 batched_categorical_tgt,
+                 cce_loss,
+                 learning_rate,
+                 100);
 }
 
 TEST_F(LossFunctionsTest, test_mse) {
   std::cout << "======================================\n";
   std::cout << "==========TESTING MSE LOSS============\n";
   std::cout << "======================================\n";
-  train_model<decltype(mse_loss),
-              decltype(input),
-              decltype(tgt)>
-  (input, tgt, mse_loss, 100);
+  train_model(model,
+                input,
+                tgt,
+                mse_loss,
+                learning_rate,
+                100);
 }
 
 TEST_F(LossFunctionsTest, test_batched_mse) {
   std::cout << "==============================================\n";
   std::cout << "==========TESTING BATCHED MSE LOSS============\n";
   std::cout << "==============================================\n";
-  train_model<decltype(mse_loss),
-              decltype(batched_input),
-              decltype(batched_tgt)>
-  (batched_input, batched_tgt, mse_loss, 100);
+  train_model(model,
+                batched_input,
+                batched_tgt,
+                mse_loss,
+                learning_rate,
+                100);
 }
