@@ -4,7 +4,9 @@
 #include <iostream>
 #include <vector>
 #include "data.hpp"
-#include "module.hpp"
+
+template <typename T>
+class MLP;
 
 using image_t = std::vector<double>;
 using label_t = uint8_t;
@@ -19,6 +21,27 @@ inline void visualise_input(const image_t& input) {
     else if (input[i] >= 0.66 && input[i] <= 1.0) std::cout << '#';
     else std::cout << "CORRUPT!";
   }
+}
+
+template<typename T, typename... Args>
+T generate_weight(const UnaryOp& activation, Args... args) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::normal_distribution<T> dist;
+
+  if (activation == UnaryOp::relu) {
+    // Calculate He initialization using the first argument.
+    auto nin = std::get<0>(std::make_tuple(args...));
+    return std::normal_distribution<T>(0, std::sqrt(2.0 / static_cast<double>(nin)))(gen);
+  }
+  if (activation == UnaryOp::softmax) {
+    // Calculate Xavier initialization using both arguments.
+    auto [nin, nout] = std::make_tuple(args...);
+    return std::normal_distribution<T>(0, std::sqrt(2.0 / static_cast<double>(nin + nout)))(gen);
+  }
+  // Handle the default case or add more if needed.
+  std::cout << "Need to implement init method for this activation function\n";
+  return T{};
 }
 
 template<typename T, class Loss, class Input_Tp, class Target_Tp>

@@ -3,6 +3,7 @@
 
 #include <random>
 #include "value.hpp"
+#include "utils.hpp"
 
 template<class T>
 using Output = std::vector<Value<T>>;
@@ -37,31 +38,15 @@ public:
     activation_ = other.activation_;
   }
   ~Neuron() override { weights_.clear(); }
-  explicit Neuron(const size_t nin, const size_t nout, const UnaryOp& activation)
+  explicit Neuron(const size_t nin,
+                  const size_t nout,
+                  const UnaryOp& activation)
     : activation_(activation) {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::normal_distribution<T> dist;
-
-    switch (activation_) {
-      case UnaryOp::relu:
-        /* He initialization */
-          dist = std::normal_distribution<T>(0, std::sqrt(2.0 / static_cast<double>(nin)));
-        break;
-      case UnaryOp::softmax:
-        /* Xavier init */
-        dist = std::normal_distribution<T>(0, std::sqrt(2.0 / static_cast<double>(nin + nout)));
-        break;
-      default:
-        std::cout << "Need to implement init method in Neuron constructor\n";
-        break;
-    }
-
     for (size_t i = 0; i < nin; i++) {
-      weights_.emplace_back(Value<T>(dist(gen))); // Use He initialization for weights
+      weights_.emplace_back(
+        Value<T>(generate_weight<T>(activation, nin, nout)));
+      bias_ = Value<T>(1e-5);
     }
-
-    bias_ = Value<T>(1e-5);
   }
 
   ParamVector<T> get_parameters() const override {
