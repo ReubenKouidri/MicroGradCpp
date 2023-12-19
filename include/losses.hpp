@@ -39,8 +39,6 @@ public:
     value_ /= static_cast<T>(batched_input.size());
   }
 
-  virtual void step() const { network_.step(learning_rate_); }
-  virtual void zero_grad() const { network_.zero_grad(); }
   virtual void zero() { value_ = Value(static_cast<T>(0)); }
   virtual void clamp(Output<T>& output) {
     for (auto& val : output) {

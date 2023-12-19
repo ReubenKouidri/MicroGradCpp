@@ -32,9 +32,9 @@ void train_model(MLP<T>& model,
   for (auto e = 0; e < epochs; e++) {
     double epoch_loss = 0;
     for (auto i = 0; i < num_samples; i++) {
-      auto grads = loss.compute_gradients(inputs[i], targets[i]);
+      loss.compute_loss(inputs, targets);
       epoch_loss += loss.get();
-      model.backward(grads);
+      loss.backward();
       model.step(learning_rate);
       model.zero_grad();
       loss.zero();
@@ -46,7 +46,7 @@ void train_model(MLP<T>& model,
 }
 
 std::tuple<image_t, label_t>
-inline extract_single(const Data* d) {
+inline extract(const Data* d) {
   return std::make_tuple(*d->get_feature_vector(), d->get_label());
 }
 
@@ -59,7 +59,7 @@ inline extract(const data_vec_t* data) {
 
   for (const auto d : *data) {
     if (d) {
-      auto [img, lbl] = extract_single(d);
+      auto [img, lbl] = extract(d);
       inputs.push_back(std::move(img));
       targets.push_back(lbl);
     }

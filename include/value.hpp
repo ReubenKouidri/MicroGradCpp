@@ -76,7 +76,7 @@ public:
 
   void backward() {
     auto topo = build_topological_order();
-    T clip_threshold = 0.1; // This is a hyperparameter
+    T clip_threshold = 1; // This is a hyperparameter
     grad_ = static_cast<T>(1); // Set dx/dx=1
     for (const auto node : topo) {
       if (std::abs(node->grad_) > clip_threshold) {
@@ -141,7 +141,7 @@ public:
 
   void zero_grad() { ptr_->grad_ = static_cast<T>(0); }
 
-  const T& get_data() const { return ptr_->get_data(); }
+  T& get_data() const { return ptr_->get_data(); }
 
   const T& get_grad() const { return ptr_->get_grad(); }
 
