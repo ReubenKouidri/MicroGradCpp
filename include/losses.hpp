@@ -69,7 +69,7 @@ public:
                     const target_type& target) override {
     auto outputs = this->network_(input);
     this->clamp(outputs);
-    this->value_ -= vlog(outputs[target]);
+    this->value_ -= log(outputs[target]);
   }
 };
 
@@ -84,16 +84,26 @@ public:
   using typename                        Loss::batched_input_type;
   using typename                        Loss::batched_target_type;
 
-  using Loss::Loss;  // Inherit constructor
+  using Loss::Loss;
+  using Loss::compute_loss;
+
+  size_t get_index(const target_type& target) {
+    auto it = std::find(target.begin(),
+                                                   target.end(), 1);
+    if (it != target.end()) {
+      return std::distance(target.begin(), it);
+    }
+    throw std::runtime_error("Target is not in OHE format. Consider using "\
+                             "sparse CCE instead\n");
+  }
 
   void compute_loss(const input_type& input,
                     const target_type& target) override {
     auto output = this->network_(input);
-    for (size_t i = 0; i < output.size(); ++i) {
-      this->value_ += -vlog(output[i]) * Value<T>(target[i]);
-    }
+    this->clamp(output);
+    auto index = get_index(target);
+    this->value_ += -log(output[index]);
   }
-  using Loss::compute_loss;
 };
 
 /*============================================================================*/
@@ -108,7 +118,8 @@ public:
   using typename           Loss::batched_input_type;
   using typename           Loss::batched_target_type;
 
-  using Loss::Loss;  // Inherit constructor
+  using Loss::Loss;
+  using Loss::compute_loss;
 
   void compute_loss(const input_type& input,
                     const target_type& target) override {
@@ -117,13 +128,12 @@ public:
 
     for (size_t i = 0; i < output.size(); i++) {
       if (i == static_cast<size_t>(target))
-        this->value_ += pow(output[i] - 1.0, static_cast<T>(2));
+        this->value_ += ops::pow(output[i] - 1.0, static_cast<T>(2));
       else
-        this->value_ += pow(output[i], static_cast<T>(2));
+        this->value_ += ops::pow(output[i], static_cast<T>(2));
     }
     this->value_ /= output.size();
   }
-  using Loss::compute_loss;
 };
 
 #endif //LOSSES_HPP

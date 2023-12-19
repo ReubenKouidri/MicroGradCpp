@@ -129,7 +129,7 @@ public:
 
       auto sum = Value(0.0);
       for (auto& o: output) {
-        o = vexp(o);
+        o = ops::exp(o);
         sum += o;
       }
       for (auto& o: output)

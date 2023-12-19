@@ -10,7 +10,7 @@
 
 using namespace ops;
 
-const std::function do_nothing = []{};
+const std::function do_nothing = []{ return; };
 
 template<typename T>
 class Value_ {
@@ -44,7 +44,7 @@ class Value_ {
   T data_ { static_cast<T>(0) };
   T grad_ { static_cast<T>(0) };
   std::vector<std::shared_ptr<Value_>> parents_;
-  std::function<void()> backward_ = do_nothing ;
+  std::function<void()> backward_ = do_nothing;
 
 public:
   Value_(const T& data, const std::vector<std::shared_ptr<Value_>>& parents):

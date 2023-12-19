@@ -10,6 +10,13 @@ protected:
   Value<double> t1 = Value(1.0);
   Value<double> t2 = Value(2.0);
   Value<double> t3 = Value(3.0);
+
+  Value<double> s0 = Value(0.0);
+  Value<double> s1 = Value(0.1);
+  Value<double> s2 = Value(0.2);
+  Value<double> s3 = Value(0.3);
+
+  Value<double> m1 = Value(-1.0);
 };
 
 TEST_F(ValueTest, AddOperator) {
@@ -17,6 +24,13 @@ TEST_F(ValueTest, AddOperator) {
   EXPECT_EQ(t0.get_data(), 0.0);
   EXPECT_EQ(t1.get_data(), 1.0);
   EXPECT_EQ(t.get_data(), 1.0);
+  t.backward();
+  EXPECT_EQ(t.get_data(), 1.0);
+  EXPECT_EQ(t0.get_data(), 0.0);
+  EXPECT_EQ(t1.get_data(), 1.0);
+  EXPECT_EQ(t.get_grad(), 1.0);
+  EXPECT_EQ(t0.get_grad(), 1.0);
+  EXPECT_EQ(t1.get_grad(), 1.0);
 }
 
 TEST_F(ValueTest, NegationOperator) {
@@ -35,17 +49,6 @@ TEST_F(ValueTest, SubtractionOperator) {
   EXPECT_EQ(t2.get_grad(), 0.0);
 }
 
-TEST_F(ValueTest, GradientRegistrationAdd) {
-  auto add = t1 + t0;
-  add.backward();
-  EXPECT_EQ(add.get_data(), 1.0);
-  EXPECT_EQ(add.get_grad(), 1.0);
-  EXPECT_EQ(t0.get_data(), 0.0);
-  EXPECT_EQ(t0.get_grad(), 1.0);
-  EXPECT_EQ(t1.get_data(), 1.0);
-  EXPECT_EQ(t1.get_grad(), 1.0);
-}
-
 TEST_F(ValueTest, GradientRegistrationSub) {
   auto subtract = t3 - t2;
   subtract.backward();
@@ -58,14 +61,38 @@ TEST_F(ValueTest, GradientRegistrationSub) {
 }
 
 TEST_F(ValueTest, GradientRegistrationMul) {
-  auto multiply = t2 * t3;
-  multiply.backward();
-  EXPECT_EQ(multiply.get_data(), 6.0);
-  EXPECT_EQ(multiply.get_grad(), 1.0);
+  auto t = t2 * t3;
+  EXPECT_EQ(t.get_data(), 6.0);
+  EXPECT_EQ(t2.get_data(), 2);
+  EXPECT_EQ(t3.get_data(), 3);
+
+  EXPECT_EQ(t.get_grad(), 0.0);
+  EXPECT_EQ(t2.get_grad(), 0.0);
+  EXPECT_EQ(t3.get_grad(), 0.0);
+
+  t.backward();
+  /* IMPORTANT!!
+   * If gradients are being clipped to 1.0 then this is correct! */
+
+  EXPECT_EQ(t.get_data(), 6.0);
+  EXPECT_EQ(t.get_grad(), 1.0);
+
   EXPECT_EQ(t2.get_data(), 2.0);
-  EXPECT_EQ(t2.get_grad(), 3.0);
+  EXPECT_EQ(t2.get_grad(), 1.0);
+
   EXPECT_EQ(t3.get_data(), 3.0);
-  EXPECT_EQ(t3.get_grad(), 2.0);
+  EXPECT_EQ(t3.get_grad(), 1.0);
+
+  auto s = s2 * s3;
+  s.backward();
+  EXPECT_EQ(s.get_data(), 0.06);
+  EXPECT_EQ(s2.get_data(), 0.2);
+  EXPECT_EQ(s2.get_grad(), 0.3);
+  EXPECT_EQ(s3.get_data(), 0.3);
+  EXPECT_EQ(s3.get_grad(), 0.2);
+
+
+
 }
 
 TEST_F(ValueTest, GradientRegistrationDiv) {
@@ -95,27 +122,34 @@ TEST_F(ValueTest, Relu) {
 }
 
 TEST_F(ValueTest, Pow) {
-  auto t4 = pow(t2, 2);
-  EXPECT_EQ(t4.get_data(), 4.0);
-  EXPECT_EQ(t2.get_data(), 2.0);
-  t4.backward();
-  EXPECT_EQ(t4.get_grad(), 1.0);
-  EXPECT_EQ(t2.get_data(), 2.0);
-  EXPECT_EQ(t2.get_grad(), 4.0);
+  auto t = ops::pow(s2, 2);
+  EXPECT_NEAR(t.get_data(), 0.04, 1e-7);
+  EXPECT_EQ(s2.get_data(), 0.2);
+  t.backward();
+  EXPECT_EQ(t.get_grad(), 1.0);
+  EXPECT_EQ(s2.get_data(), 0.2);
+  EXPECT_NEAR(s2.get_grad(), 0.4, 1e-7);
 }
 
 TEST_F(ValueTest, Exp) {
-  auto t4 = vexp(t2);
-  EXPECT_NEAR(t4.get_data(), 7.38905609893065, 1e-7);
+  auto t = ops::exp(t2);
+  EXPECT_NEAR(t.get_data(), 7.38905609893065, 1e-7);
   EXPECT_EQ(t2.get_data(), 2.0);
-  t4.backward();
-  EXPECT_EQ(t4.get_grad(), 1.0);
+  t.backward();
+  EXPECT_EQ(t.get_grad(), 1.0);
   EXPECT_EQ(t2.get_data(), 2.0);
-  EXPECT_NEAR(t2.get_grad(), 7.38905609893065, 1e-7);
+  /* CLIPPING GRADS */
+  EXPECT_NEAR(t2.get_grad(), 1.0, 1e-7);
+
+  auto s = ops::exp(m1);
+  s.backward();
+  EXPECT_NEAR(s.get_data(), 0.36787944117, 1e-7);
+  EXPECT_NEAR(m1.get_grad(), 0.36787944117, 1e-7);
+
 }
 
 TEST_F(ValueTest, Log) {
-  auto t4 = vlog(t2);
+  auto t4 = ops::log(t2);
   EXPECT_NEAR(t4.get_data(), 0.6931471806, 1e-7);
   EXPECT_EQ(t2.get_data(), 2.0);
   t4.backward();

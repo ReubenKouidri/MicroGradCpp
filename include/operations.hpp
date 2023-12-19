@@ -92,46 +92,46 @@ public:
   }
 
   static void register_op(const Value<T>* left_operand,
-                          const Value<T>& other,
-                          Value<T>& out,
+                          const Value<T>& right_operand,
+                          Value<T>& result,
                           const BinaryOp& op) {
-    Value_<T>* out_ptr = out.get_ptr().get();
-    Value_<T>* this_ptr = left_operand->get_ptr().get();
-    Value_<T>* other_ptr = other.get_ptr().get();
+    Value_<T>* result_ptr = result.get_ptr().get();
+    Value_<T>* left_ptr = left_operand->get_ptr().get();
+    Value_<T>* right_ptr = right_operand.get_ptr().get();
 
     std::function<void()> backward_function;
     switch (op) {
       case BinaryOp::add:
-        backward_function = [this_ptr, other_ptr, out_ptr] {
-          this_ptr->get_grad() += out_ptr->get_grad();
-          other_ptr->get_grad() += out_ptr->get_grad();
+        backward_function = [left_ptr, right_ptr, result_ptr] {
+          left_ptr->get_grad() += result_ptr->get_grad();
+          right_ptr->get_grad() += result_ptr->get_grad();
         };
         break;
       case BinaryOp::subtract:
-        backward_function = [this_ptr, other_ptr, out_ptr] {
-          this_ptr->get_grad() += out_ptr->get_grad();
-          other_ptr->get_grad() -= out_ptr->get_grad();
+        backward_function = [left_ptr, right_ptr, result_ptr] {
+          left_ptr->get_grad() += result_ptr->get_grad();
+          right_ptr->get_grad() -= result_ptr->get_grad();
         };
         break;
       case BinaryOp::multiply:
-        backward_function = [this_ptr, other_ptr, out_ptr] {
-          this_ptr->get_grad() += other_ptr->get_data() * out_ptr->get_grad();
-          other_ptr->get_grad() += this_ptr->get_data() * out_ptr->get_grad();
+        backward_function = [left_ptr, right_ptr, result_ptr] {
+          left_ptr->get_grad() += right_ptr->get_data() * result_ptr->get_grad();
+          right_ptr->get_grad() += left_ptr->get_data() * result_ptr->get_grad();
         };
         break;
       case BinaryOp::divide:
-        backward_function = [this_ptr, other_ptr, out_ptr] {
-          this_ptr->get_grad() += out_ptr->get_grad() / other_ptr->get_data();
-          other_ptr->get_grad() +=
-            -this_ptr->get_data() *
-            out_ptr->get_grad() / std::pow(other_ptr->get_data(), 2);
+        backward_function = [left_ptr, right_ptr, result_ptr] {
+          left_ptr->get_grad() += result_ptr->get_grad() / right_ptr->get_data();
+          right_ptr->get_grad() +=
+            -left_ptr->get_data() *
+            result_ptr->get_grad() / std::pow(right_ptr->get_data(), 2);
         };
         break;
       default:
         std::cout << "WARNING! Setting default backward_function - [](){}\n";
         break;
     }
-    out.set_backward(backward_function);
+    result.set_backward(backward_function);
   }
 };
 
@@ -142,7 +142,7 @@ static void register_op(Args&&... args) {
 }
 
 template<typename T>
-Value<T> vexp(const Value<T>& operand) {
+Value<T> exp(const Value<T>& operand) {
   auto result = Value(std::exp(operand.get_data()), {operand.get_ptr()});
   register_op<T>(operand, result, UnaryOp::exp);
   return result;
@@ -156,7 +156,7 @@ Value<T> pow(const Value<T>& obj, const C e) {
 }
 
 template <typename T>
-Value<T> vlog(const Value<T>& operand) {
+Value<T> log(const Value<T>& operand) {
   auto result = Value(std::log(operand.get_data()), {operand.get_ptr()});
   register_op<T>(operand, result, UnaryOp::ln);
   return result;

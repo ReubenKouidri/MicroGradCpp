@@ -12,13 +12,14 @@ protected:
   static constexpr uint8_t tgt = 0;
 
   const std::vector<uint8_t> categorical_tgt {1, 0};
-  const std::vector<std::vector<uint8_t>> batched_categorical_tgt {categorical_tgt, categorical_tgt, categorical_tgt};
+  const std::vector<std::vector<uint8_t>> batched_categorical_tgt {
+    categorical_tgt, categorical_tgt, categorical_tgt};
 
   std::vector<std::vector<double>> batched_input {input, input, input};
   std::vector<uint8_t> batched_tgt {tgt, tgt, tgt};
 
   static constexpr double learning_rate = 0.05;
-  static constexpr size_t epochs = 100;
+  static constexpr size_t epochs = 25;
 
   const Layer<double> layer0 {3, 3, UnaryOp::relu};
   const Layer<double> layer1 {3, 2, UnaryOp::softmax};
