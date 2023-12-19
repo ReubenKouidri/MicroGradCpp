@@ -1,23 +1,44 @@
 #ifndef VALUE_HPP
 #define VALUE_HPP
 
+#include "operations.hpp"
 #include <cmath>
-#include <vector>
-#include <set>
 #include <functional>
-#include <ranges>
-#include "grad_utils.hpp"
+#include <stack>
+#include <unordered_set>
+#include <vector>
 
-const std::function<void()> do_nothing = [](){ return; };
+using namespace ops;
+
+const std::function do_nothing = []{};
 
 template<typename T>
 class Value_ {
-  template <typename C> friend class Value;
+  template <typename C>  friend class Value;
 
   template<typename C>
   friend std::ostream& operator<<(std::ostream& os, const Value_<C>& val) {
     os << "Value(" << val.get_data() << ", " << val.get_grad() << ")";
     return os;
+  }
+  void DFS(std::vector<Value_*>& topological_order,
+           std::unordered_set<Value_*>& visited_nodes) {
+    std::stack<Value_*> stack;
+    stack.push(this);
+    while (!stack.empty()) {
+      Value_* node = stack.top();
+      stack.pop();
+
+      if (!visited_nodes.insert(node).second)
+        continue;
+
+      topological_order.push_back(node);
+      for (auto& parent_ptr : node->get_parent_ptrs()) {
+        if (!visited_nodes.contains(parent_ptr.get())) {
+          stack.push(parent_ptr.get());
+        }
+      }
+    }
   }
 
   T data_ { static_cast<T>(0) };
@@ -39,86 +60,56 @@ public:
   const T& get_grad() const { return grad_; }
   T& get_data() { return data_; }
   T& get_grad() { return grad_; }
-  const std::vector<std::shared_ptr<Value_>>& get_parent_ptrs() const { return parents_; }
+  const std::vector<std::shared_ptr<Value_>>& get_parent_ptrs() const {
+    return parents_;
+  }
   void zero_grad() { grad_ = static_cast<T>(0); }
   void set_backward(const std::function<void()>& func) { backward_ = func; }
   void step(const double& learning_rate) { data_ -= learning_rate * grad_; }
 
   std::vector<Value_*> build_topological_order() {
     std::vector<Value_*> topological_order;
-    std::set<Value_*> visited_nodes;
-    std::function<void(Value_*, std::set<Value_*>&, std::vector<Value_*>&)> build_topo_;
-    build_topo_ = [&build_topo_](
-      Value_* node, std::set<Value_*>& visited, std::vector<Value_*>& order) {
-      if (visited.contains(node))
-        return;
-
-      visited.insert(node);
-      for (auto& parent_ptr: node->get_parent_ptrs())
-        build_topo_(parent_ptr.get(), visited, order);
-      order.push_back(node);
-    };
-    build_topo_(this, visited_nodes, topological_order);
+    std::unordered_set<Value_*> visited_nodes;
+    DFS(topological_order, visited_nodes);
     return topological_order;
   }
 
   void backward() {
     auto topo = build_topological_order();
+    T clip_threshold = 0.1; // This is a hyperparameter
     grad_ = static_cast<T>(1); // Set dx/dx=1
-    for (const auto node : std::ranges::reverse_view(topo)) {
+    for (const auto node : topo) {
+      if (std::abs(node->grad_) > clip_threshold) {
+        node->grad_ = std::copysign(clip_threshold, node->grad_);
+      }
       node->backward_();
     }
   }
 };
 
-
-using namespace ops;
-
 template<typename T>
 class Value {
-  template<typename C> friend std::ostream& operator<<(std::ostream& os, const Value<C>& val) {
+  template<typename C>
+  friend std::ostream& operator<<(std::ostream& os, const Value<C>& val) {
     os << "Value(" << val.get_data() << ", " << val.get_grad() << ")";
     return os;
   }
   // 'right-op' overloads
-  template<typename C> friend Value<C> operator+(C num, const Value<C>& val) { return val + num; }
-  template<typename C> friend Value<C> operator-(C num, const Value<C>& val) { return val - num; }
-  template<typename C> friend Value<C> operator*(C num, const Value<C>& val) { return val * num; }
-  template<typename C> friend Value<C> operator/(C num, const Value<C>& val) { return val / num; }
-
   template<typename C>
-  friend Value pow(const Value& obj, const C e) {
-    auto out = Value(std::pow(obj.get_data(), e), {obj.get_ptr()});
-    register_op(obj, out, UnaryOp::pow, e);
-    return out;
-  }
-
-  friend Value vexp(const Value& operand) {
-    auto result = Value(std::exp(operand.get_data()), {operand.get_ptr()});
-    register_op(operand, result, UnaryOp::exp);
-    return result;
-  }
-
-  friend Value vlog(const Value& operand) {
-    auto result = Value(std::log(operand.get_data()), {operand.get_ptr()});
-    register_op(operand, result, UnaryOp::ln);
-    return result;
-  }
-
-  friend Value relu(const Value& operand) {
-    T new_data = std::max(static_cast<T>(0), operand.get_data());
-    auto result = Value(new_data, {operand.get_ptr()});
-    register_op(operand, result, UnaryOp::relu);
-    return result;
-  }
+  friend Value<C> operator+(C num, const Value<C>& val) { return val + num; }
+  template<typename C>
+  friend Value<C> operator-(C num, const Value<C>& val) { return val - num; }
+  template<typename C>
+  friend Value<C> operator*(C num, const Value<C>& val) { return val * num; }
+  template<typename C>
+  friend Value<C> operator/(C num, const Value<C>& val) { return val / num; }
 
   std::shared_ptr<Value_<T>> ptr_ = nullptr;
 
+public:
   Value(const T& data, const std::vector<std::shared_ptr<Value_<T>>>& parents) {
     ptr_ = std::make_shared<Value_<T>>(data, parents);
   }
-
-public:
   Value() { ptr_ = std::make_shared<Value_<T>>(static_cast<T>(0)); }
   explicit Value(const T& data) { ptr_ = std::make_shared<Value_<T>>(data); }
   ~Value() { ptr_ = nullptr; }
@@ -127,25 +118,24 @@ public:
     ptr_ = other.ptr_;
     other.ptr_ = nullptr;
   }
+
   Value& operator=(const Value& other) {
     if (&other != this)
       ptr_ = other.ptr_;
     return *this;
   }
+
   Value& operator=(Value&& other) noexcept {
     ptr_ = other.ptr_;
     other.ptr_ = nullptr;
     return *this;
   }
 
-  template<typename... Args>
-  static void register_op(Args&&... args) {
-    Register<T>::register_op(std::forward<Args>(args)...);
-  }
-
   std::shared_ptr<Value_<T>> get_ptr() const { return ptr_; }
 
-  void set_backward(std::function<void()> func) const { ptr_->set_backward(func); }
+  void set_backward(std::function<void()> func) const {
+    ptr_->set_backward(func);
+  }
 
   void backward() const { ptr_->backward(); }
 
@@ -155,17 +145,20 @@ public:
 
   const T& get_grad() const { return ptr_->get_grad(); }
 
-  T& get_data() { return ptr_->get_data(); }
+  void set_data(const T val) { ptr_->get_data() = val; }
 
   T& get_grad() { return ptr_->get_grad(); }
 
   void step(const double& learning_rate) { ptr_->step(learning_rate); }
 
-  std::vector<Value_<T>*> build_topo() const { return ptr_->build_topological_order(); }
+  std::vector<Value_<T>*> build_topo() const {
+    return ptr_->build_topological_order();
+  }
 
   Value operator+(const Value& other) const {
-    auto out = Value(get_data() + other.get_data(),{get_ptr(), other.get_ptr()});
-    register_op(this, other, out, BinaryOp::add);
+    auto out = Value(get_data() + other.get_data(),
+                  {get_ptr(), other.get_ptr()});
+    register_op<T>(this, other, out, BinaryOp::add);
     return out;
   }
 
@@ -184,8 +177,9 @@ public:
   }
 
   Value operator-(const Value& other) const {
-    auto out = Value(get_data() - other.get_data(),{get_ptr(), other.get_ptr()});
-    register_op(this, other, out, BinaryOp::subtract);
+    auto out = Value(get_data() - other.get_data(),
+                    {get_ptr(), other.get_ptr()});
+    register_op<T>(this, other, out, BinaryOp::subtract);
     return out;
   }
 
@@ -220,8 +214,9 @@ public:
   }
 
   Value operator*(const Value& other) const {
-    auto result = Value(get_data() * other.get_data(), {get_ptr(), other.get_ptr()});
-    register_op(this, other, result, BinaryOp::multiply);
+    auto result = Value(get_data() * other.get_data(),
+                      {get_ptr(), other.get_ptr()});
+    register_op<T>(this, other, result, BinaryOp::multiply);
     return result;
   }
 
@@ -243,7 +238,9 @@ public:
     return operator*(static_cast<T>(-1));
   }
 
-  bool operator>(const Value& other) const { return get_data() > other.get_data(); }
+  bool operator>(const Value& other) const {
+    return get_data() > other.get_data();
+  }
   bool operator<(const Value& other) const { return !(*this > other); }
 };
 
