@@ -43,7 +43,7 @@ protected:
   std::vector<label_t> single_target_batch;
 
   static constexpr double learning_rate {0.01};
-  static constexpr size_t epochs {10};
+  static constexpr size_t epochs {1};
   static constexpr size_t batch_size = 100;
 };
 

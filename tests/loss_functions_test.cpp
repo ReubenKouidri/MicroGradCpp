@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "../include/module.hpp"
 #include "../include/losses.hpp"
-#include "../include/utils.hpp""
+#include "../include/utils.hpp"
 
 class LossFunctionsTest : public testing::Test {
 protected:
