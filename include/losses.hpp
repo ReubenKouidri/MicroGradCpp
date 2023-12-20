@@ -8,10 +8,10 @@
 template<class T, class Target_Tp>
 class Loss {
 public:
-  typedef std::vector<T>              input_type;
-  typedef Target_Tp /* e.g. uint8_t*/ target_type;
-  typedef std::vector<input_type>     batched_input_type;
-  typedef std::vector<target_type>    batched_target_type;
+  using input_type          = std::vector<T>;
+  using target_type         = Target_Tp; /* e.g. uint8_t*/
+  using batched_input_type  = std::vector<input_type>;
+  using batched_target_type = std::vector<target_type>;
 
 protected:
   MLP<T> network_;
@@ -55,11 +55,11 @@ public:
 template<class T>
 class SparseCCELoss final : public Loss<T, uint8_t> {
 public:
-  typedef Loss<T, uint8_t> Loss;
-  using typename           Loss::input_type;
-  using typename           Loss::target_type;
-  using typename           Loss::batched_input_type;
-  using typename           Loss::batched_target_type;
+  using Loss =   Loss<T, uint8_t>;
+  using typename Loss::input_type;
+  using typename Loss::target_type;
+  using typename Loss::batched_input_type;
+  using typename Loss::batched_target_type;
 
   using Loss::Loss;  // Inherit constructor
   using Loss::compute_loss;
@@ -78,11 +78,11 @@ public:
 template<class T>
 class CCELoss final: public Loss<T, std::vector<uint8_t>> {
 public:
-  typedef Loss<T, std::vector<uint8_t>> Loss;
-  using typename                        Loss::input_type;
-  using typename                        Loss::target_type;
-  using typename                        Loss::batched_input_type;
-  using typename                        Loss::batched_target_type;
+  using Loss =    Loss<T, std::vector<uint8_t>>;
+  using typename  Loss::input_type;
+  using typename  Loss::target_type;
+  using typename  Loss::batched_input_type;
+  using typename  Loss::batched_target_type;
 
   using Loss::Loss;
   using Loss::compute_loss;
@@ -112,11 +112,11 @@ public:
 template<class T>
 class MSELoss final: public Loss<T, uint8_t> {
 public:
-  typedef Loss<T, uint8_t> Loss;
-  using typename           Loss::input_type;
-  using typename           Loss::target_type;
-  using typename           Loss::batched_input_type;
-  using typename           Loss::batched_target_type;
+  using Loss =   Loss<T, uint8_t>;
+  using typename Loss::input_type;
+  using typename Loss::target_type;
+  using typename Loss::batched_input_type;
+  using typename Loss::batched_target_type;
 
   using Loss::Loss;
   using Loss::compute_loss;
