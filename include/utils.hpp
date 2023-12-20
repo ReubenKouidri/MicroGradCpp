@@ -30,18 +30,30 @@ T generate_weight(const UnaryOp& activation, Args... args) {
   std::normal_distribution<T> dist;
 
   if (activation == UnaryOp::relu) {
-    // Calculate He initialization using the first argument.
+    /* Calculate He initialization using the first argument */
     auto nin = std::get<0>(std::make_tuple(args...));
-    return std::normal_distribution<T>(0, std::sqrt(2.0 / static_cast<double>(nin)))(gen);
+    return std::normal_distribution<T>(
+      0, std::sqrt(2.0 / static_cast<double>(nin)))(gen);
   }
   if (activation == UnaryOp::softmax) {
-    // Calculate Xavier initialization using both arguments.
+    /* Calculate Xavier initialization using both arguments */
     auto [nin, nout] = std::make_tuple(args...);
-    return std::normal_distribution<T>(0, std::sqrt(2.0 / static_cast<double>(nin + nout)))(gen);
+    return std::normal_distribution<T>(
+      0, std::sqrt(2.0 / static_cast<double>(nin + nout)))(gen);
   }
-  // Handle the default case or add more if needed.
   std::cout << "Need to implement init method for this activation function\n";
   return T{};
+}
+
+template <typename T>
+void print_output(const std::vector<Value<T>>& output) {
+  std::cout << "Output(";
+  auto it = output.begin();
+  while (it < output.end() - 1) {
+    std::cout << *it << ", ";
+    ++it;
+  }
+  std::cout << *it << ")\n";
 }
 
 template<typename T, class Loss, class Input_Tp, class Target_Tp>
@@ -52,9 +64,9 @@ void train_model(MLP<T>& model,
                  const double learning_rate,
                  const size_t epochs) {
   const auto num_samples = inputs.size();
-  for (auto e = 0; e < epochs; e++) {
+  for (size_t e = 0; e < epochs; e++) {
     double epoch_loss = 0;
-    for (auto i = 0; i < num_samples; i++) {
+    for (size_t i = 0; i < num_samples; i++) {
       loss.compute_loss(inputs, targets);
       epoch_loss += loss.get();
       loss.backward();
