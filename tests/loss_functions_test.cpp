@@ -50,7 +50,7 @@ TEST_F(LossFunctionsTest, test_sparse_cce_batched) {
                 batched_tgt,
                 sparse_cce_loss,
                 learning_rate,
-                100);
+                epochs);
 }
 
 TEST_F(LossFunctionsTest, test_cce) {
@@ -62,7 +62,7 @@ TEST_F(LossFunctionsTest, test_cce) {
               categorical_tgt,
               cce_loss,
               learning_rate,
-              100);
+              epochs);
 }
 
 TEST_F(LossFunctionsTest, test_batched_cce) {
@@ -74,7 +74,7 @@ TEST_F(LossFunctionsTest, test_batched_cce) {
                  batched_categorical_tgt,
                  cce_loss,
                  learning_rate,
-                 100);
+                 epochs);
 }
 
 TEST_F(LossFunctionsTest, test_mse) {
@@ -86,7 +86,7 @@ TEST_F(LossFunctionsTest, test_mse) {
                 tgt,
                 mse_loss,
                 learning_rate,
-                100);
+                epochs);
 }
 
 TEST_F(LossFunctionsTest, test_batched_mse) {
@@ -98,5 +98,5 @@ TEST_F(LossFunctionsTest, test_batched_mse) {
                 batched_tgt,
                 mse_loss,
                 learning_rate,
-                100);
+                epochs);
 }
