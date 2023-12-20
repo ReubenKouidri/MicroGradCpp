@@ -103,18 +103,12 @@ public:
       output.emplace_back(n(inputs));
     }
     if (activation_ == UnaryOp::softmax) {
-      // for numerical stability, subtract max value
-      // this transformation leaves the softmax output invariant
       auto max_val = *std::max_element(output.begin(), output.end(),
                                               [&](const Value<T>& a, const Value<T>& b) {
                                                 return a < b;});
-
-      for (auto& o : output)
-        o -= max_val;
-
       auto sum = Value(0.0);
-      for (auto& o: output) {
-        o = ops::exp(o);
+      for (auto& o : output) {
+        o = ops::exp(o - max_val);
         sum += o;
       }
       for (auto& o: output)
