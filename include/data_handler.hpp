@@ -12,7 +12,6 @@ class DataHandler {
   std::vector<Data*> *test_data_;
 
   size_t total_length_ {};
-  size_t feature_vector_size_ {};
   size_t image_size_ {};
   std::map<uint8_t, size_t> class_map_ {};
 
@@ -20,16 +19,20 @@ class DataHandler {
   static constexpr double VALIDATION_SPLIT = 0.10;
   static constexpr double TEST_SPLIT = 0.10;
 
-  static void append_data(const std::vector<size_t>&, std::vector<Data*>*, std::vector<Data*>*);
+  static void append_data(const std::vector<size_t>&,
+                          std::vector<Data*>*,
+                          std::vector<Data*>*);
 
-  static std::vector<std::vector<Data*>> batch_dataset(const std::vector<Data*>*, size_t);
+  static std::vector<std::vector<Data*>> batch_dataset(const std::vector<Data*>*,
+                                                       size_t);
 
 public:
   DataHandler();
   ~DataHandler();
   DataHandler(const std::string&, const std::string&);
 
-  template<size_t S> static void read_header(std::array<uint32_t, S>&, std::ifstream&);
+  template<size_t S> static void read_header(std::array<uint32_t, S>&,
+                                             std::ifstream&);
   void read_feature_vector(const std::string& path);
   void read_feature_labels(const std::string& path);
   void split_data() const;
