@@ -103,9 +103,9 @@ public:
       output.emplace_back(n(inputs));
     }
     if (activation_ == UnaryOp::softmax) {
-      auto max_val = *std::max_element(output.begin(), output.end(),
-                                              [&](const Value<T>& a, const Value<T>& b) {
-                                                return a < b;});
+      auto max_val = *std::max_element(
+        output.begin(), output.end(),
+        [&](const Value<T>& a, const Value<T>& b) {return a < b;});
       auto sum = Value(0.0);
       for (auto& o : output) {
         o = ops::exp(o - max_val);
