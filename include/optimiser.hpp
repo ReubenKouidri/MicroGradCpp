@@ -12,7 +12,6 @@ template <typename T>
 class Optimiser {
 protected:
   std::unique_ptr<MLP<T>> model_;
-  std::vector<std::reference_wrapper<Value<T>>> param_vec_;
   double step_size_;
   size_t t_ {};
   double clip_val_; 
@@ -27,13 +26,7 @@ public:
             const double clip_val)
     : model_(std::move(model)),
       step_size_(step_size),
-      clip_val_(clip_val) {
-    const auto& model_params = model_->get_parameters();
-    param_vec_.reserve(model_params.size());
-    for (auto& param : model_params) {
-      param_vec_.push_back(std::ref(*param));
-    }
-  }
+      clip_val_(clip_val) {}
 
   Optimiser(const Optimiser& other) = delete;
   Optimiser(Optimiser&& other) = delete;
@@ -42,6 +35,10 @@ public:
   ~Optimiser() = default;
 
   virtual void step() = 0;
+  virtual void zero_grad() {
+    for (const auto& p : model_->get_parameters())
+      p->zero_grad();
+  }
 };
 
 template <typename T>
@@ -51,7 +48,6 @@ class Adam final : public Optimiser<T> {
   double eps_;
   std::vector<double> m_;
   std::vector<double> v_;
-  std::vector<double> g_;
 public:
   explicit Adam(MLP<T> *model,
                 const double step_size = 1e-3,
@@ -62,10 +58,11 @@ public:
       : Optimiser<T>(model, step_size, clip_val),
         beta_1_(beta_1),
         beta_2_(beta_2),
-        eps_(eps),
-        m_(this->param_vec_.size(), 0),
-        v_(this->param_vec_.size(), 0),
-        g_(this->param_vec_.size(), 0) {}
+        eps_(eps) {
+    const auto size = this->model_->get_parameters().size();
+    m_ = std::vector<double>(size, 0);
+    v_ = std::vector<double>(size, 0);
+  }
 
   Adam(const Adam& other) = delete;
   Adam(Adam&& other) = delete;
@@ -89,37 +86,32 @@ public:
     **/
 
     this->t_++;
+    const auto& params = this->model_->get_parameters();
 
     size_t idx = 0;
-    for (auto& param : this->param_vec_) {
-      T& grad = param.get().get_grad();
-      this->clip_val_ < grad ? grad = this->clip_val_ : grad;
-      g_[idx] = grad;
+    for (auto& param : params) {
+      T& grad = param->get_grad();
+      if (std::abs(grad) > this->clip_val_)
+        grad = grad > 0 ? this->clip_val_ : -this->clip_val_;
       idx++;
     }
 
-    for (size_t i = 0; i < m_.size(); ++i) {
-      m_[i] = beta_1_ * m_[i] + (1 - beta_1_) * g_[i];
-      v_[i] = beta_2_ * v_[i] + (1 - beta_2_) * std::pow(g_[i], 2);
+    for (size_t i = 0; i < m_.size(); i++) {
+      m_[i] = beta_1_ * m_[i] + (1 - beta_1_) * params[i]->get_grad();
+      v_[i] = beta_2_ * v_[i] + (1 - beta_2_) *
+          std::pow(params[i]->get_grad(), 2);
     }
 
-    this->step_size_ = this->step_size_ *
-                       std::sqrt(1 - std::pow(beta_2_, this->t_)) /
-                       (1 - std::pow(beta_1_, this->t_));
-
+    const auto alpha_t =  this->step_size_ *
+                          std::sqrt(1 - std::pow(beta_2_, this->t_)) /
+                          (1 - std::pow(beta_1_, this->t_));
     const double eps_p = eps_ * std::sqrt(1 - std::pow(beta_2_, this->t_));
 
     idx = 0;
-    for (auto& param : this->param_vec_) {
-      param.get().get_data() -= this->step_size_ * m_[idx] /
-                                              (std::sqrt(v_[idx]) + eps_p);
+    for (auto& param : params) {
+      param->get_data() -= alpha_t * m_[idx] / (std::sqrt(v_[idx]) + eps_p);
       ++idx;
     }
-//    for (size_t k = 0; k < this->param_vec_.size(); ++k) {
-//      this->param_vec_[k]->set_data(
-//          this->param_vec_[k]->get_data() -= this->step_size_ * m_[k] /
-//                                             (std::sqrt(v_[k]) + eps_p));
-//    }
   }
 };
 
