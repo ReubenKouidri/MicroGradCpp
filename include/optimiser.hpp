@@ -5,6 +5,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <ranges>
 #include "module.hpp"
 #include "value.hpp"
 
@@ -72,6 +73,8 @@ public:
 
   void step() override {
     /**
+    \name Adam Optimiser
+    \details
     m0 ← 0 (Initialize 1st moment vector) \n
     v0 ← 0 (Initialize 2nd moment vector) \n
     while θ_t not converged do \n
@@ -82,19 +85,13 @@ public:
         α_t = α · √(1 − β2^t) / (1 − β1^t) \n
         θ_t ← θ_t−1 − α_t * m_t / (√v_t + ε') | ε' := ε√(1-β2^t) \n
     end while \n
-    return θ_t (Resulting parameters)
     **/
 
     this->t_++;
     const auto& params = this->model_->get_parameters();
-
-    size_t idx = 0;
-    for (auto& param : params) {
-      T& grad = param->get_grad();
-      if (std::abs(grad) > this->clip_val_)
-        grad = grad > 0 ? this->clip_val_ : -this->clip_val_;
-      idx++;
-    }
+    std::for_each(params.begin(), params.end(), [&](auto& p) {
+      p->get_grad() = std::clamp(p->get_grad(), -this->clip_val_, this->clip_val_);
+    });
 
     for (size_t i = 0; i < m_.size(); i++) {
       m_[i] = beta_1_ * m_[i] + (1 - beta_1_) * params[i]->get_grad();
@@ -107,7 +104,7 @@ public:
                           (1 - std::pow(beta_1_, this->t_));
     const double eps_p = eps_ * std::sqrt(1 - std::pow(beta_2_, this->t_));
 
-    idx = 0;
+    size_t idx = 0;
     for (auto& param : params) {
       param->get_data() -= alpha_t * m_[idx] / (std::sqrt(v_[idx]) + eps_p);
       ++idx;
