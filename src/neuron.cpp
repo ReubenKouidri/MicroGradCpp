@@ -2,9 +2,8 @@
 
 template<typename T, typename... Args>
 T generate_weight(const UnaryOp& activation, Args... args) {
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::normal_distribution<T> dist;
+  static std::random_device rd;
+  static std::mt19937 gen(rd());
 
   if (activation == UnaryOp::relu) {
     /* Calculate He initialization using the first argument */
