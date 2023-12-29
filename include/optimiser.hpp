@@ -9,7 +9,8 @@
 #include "module.hpp"
 #include "value.hpp"
 
-template <typename T>
+// CRTP base class
+template <class Derived, typename T>
 class Optimiser {
 protected:
   std::unique_ptr<MLP<T>> model_;
@@ -22,13 +23,17 @@ public:
 
   virtual ~Optimiser() = default;
 
-  virtual void step() = 0;
+  void step() {
+    static_cast<Derived*>(this)->step_impl();
+  }
 
-  virtual void zero_grad();
+  void zero_grad();
 };
 
 template <typename T>
-class Adam final : public Optimiser<T> {
+class Adam final : public Optimiser<Adam<T>, T> {
+  friend class Optimiser<Adam<T>, T>;  /* grant access to base */
+
   double beta_1_;
   double beta_2_;
   double eps_;
@@ -42,7 +47,7 @@ public:
 
   ~Adam() override;
 
-  void step() override;
+  void step_impl();
 };
 
 #endif //OPTIMISER_HPP

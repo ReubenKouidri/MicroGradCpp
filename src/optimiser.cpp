@@ -1,15 +1,15 @@
 #include "../include/optimiser.hpp"
 
-template <typename T>
-Optimiser<T>::Optimiser(MLP<T> *model,
-                        const double step_size,
-                        const double clip_val)
+template <class Derived, typename T>
+Optimiser<Derived, T>::Optimiser(MLP<T> *model,
+                                 const double step_size,
+                                 const double clip_val)
     : model_(std::make_unique<MLP<T>>(*model)),
       step_size_(step_size),
       clip_val_(clip_val) {}
 
-template <typename T>
-void Optimiser<T>::zero_grad() {
+template <class Derived, typename T>
+void Optimiser<Derived, T>::zero_grad() {
   for (const auto& p : model_->get_parameters())
     p->zero_grad();
 }
@@ -18,7 +18,7 @@ template <typename T>
 Adam<T>::Adam(MLP<T> *model, const double step_size,
               const double beta_1, const double beta_2,
               const double eps, const double clip_val)
-    : Optimiser<T>(model, step_size, clip_val),
+    : Optimiser<Adam<T>, T>(model, step_size, clip_val),
       beta_1_(beta_1),
       beta_2_(beta_2),
       eps_(eps) {
@@ -31,7 +31,7 @@ template <typename T>
 Adam<T>::~Adam() = default;
 
 template <typename T>
-void Adam<T>::step() {
+void Adam<T>::step_impl() {
   /**
     \name Adam Optimiser
     \details
@@ -72,5 +72,5 @@ void Adam<T>::step() {
   }
 }
 
-template class Optimiser<double>;
+template class Optimiser<Adam<double>, double>;
 template class Adam<double>;
