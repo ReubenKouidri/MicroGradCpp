@@ -4,6 +4,11 @@
 #include <random>
 #include "../include/data_handler.hpp"
 
+using image_t = std::vector<double>;
+using label_t = uint8_t;
+using data_vec_t = std::vector<Data*>;
+using data_batch_t = std::vector<data_vec_t>;
+
 DataHandler::DataHandler() {
   data_array_ = new std::vector<Data*>;
   training_data_ = new std::vector<Data*>;
@@ -207,4 +212,41 @@ void DataHandler::print_class_info() const {
   for (const auto [k, v] : class_map_) {
     std::cout << "Label: " << static_cast<int>(k) << ", count: " << v << '\n';
   }
+}
+
+std::tuple<image_t, label_t>
+inline extract(const Data *d) {
+  return std::make_tuple(*d->get_feature_vector(), d->get_label());
+}
+
+std::tuple<std::vector<image_t>, std::vector<label_t>>
+inline extract(const data_vec_t *data) {
+  std::vector<image_t> inputs;
+  std::vector<label_t> targets;
+  inputs.reserve(data->size());
+  targets.reserve(data->size());
+
+  for (const auto d : *data) {
+    if (d) {
+      auto [img, lbl] = extract(d);
+      inputs.push_back(std::move(img));
+      targets.push_back(lbl);
+    }
+  }
+  return std::make_tuple(std::move(inputs), std::move(targets));
+}
+
+std::tuple<std::vector<std::vector<image_t>>, std::vector<std::vector<label_t>>>
+inline extract(const data_batch_t& batched_data) {
+  std::vector<std::vector<image_t>> img_batch;
+  std::vector<std::vector<label_t>> lbl_batch;
+  img_batch.reserve(batched_data.size());
+  lbl_batch.reserve(batched_data.size());
+
+  for (const auto& data_vec : batched_data) {
+    auto [imgs, lbls] = extract(&data_vec);
+    img_batch.push_back(std::move(imgs));
+    lbl_batch.push_back(std::move(lbls));
+  }
+  return std::make_tuple(std::move(img_batch), std::move(lbl_batch));
 }
