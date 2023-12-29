@@ -1,5 +1,27 @@
 #include "../include/neuron.hpp"
 
+template<typename T, typename... Args>
+T generate_weight(const UnaryOp& activation, Args... args) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::normal_distribution<T> dist;
+
+  if (activation == UnaryOp::relu) {
+    /* Calculate He initialization using the first argument */
+    auto nin = std::get<0>(std::make_tuple(args...));
+    return std::normal_distribution<T>(
+        0, std::sqrt(2.0 / static_cast<double>(nin)))(gen);
+  }
+  if (activation == UnaryOp::softmax) {
+    /* Calculate Xavier initialization using both arguments */
+    auto [nin, nout] = std::make_tuple(args...);
+    return std::normal_distribution<T>(
+        0, std::sqrt(2.0 / static_cast<double>(nin + nout)))(gen);
+  }
+  std::cout << "Need to implement init method for this activation function\n";
+  return T{};
+}
+
 template <class T>
 Neuron<T>::Neuron(const Neuron& other) {
   weights_ = other.weights_;
