@@ -5,6 +5,15 @@
 #include <map>
 #include "data.hpp"
 
+static constexpr double TRAIN_SPLIT = 0.80;
+static constexpr double VALIDATION_SPLIT = 0.10;
+static constexpr double TEST_SPLIT = 0.10;
+
+using image_t = std::vector<double>;
+using label_t = uint8_t;
+using data_vec_t = std::vector<Data*>;
+using data_batch_t = std::vector<data_vec_t>;
+
 class DataHandler {
   std::vector<Data*> *data_array_;  // all data
   std::vector<Data*> *training_data_;
@@ -14,10 +23,6 @@ class DataHandler {
   size_t total_length_ {};
   size_t image_size_ {};
   std::map<uint8_t, size_t> class_map_ {};
-
-  static constexpr double TRAIN_SPLIT = 0.80;
-  static constexpr double VALIDATION_SPLIT = 0.10;
-  static constexpr double TEST_SPLIT = 0.10;
 
   static void append_data(const std::vector<size_t>&,
                           std::vector<Data*>*,
@@ -31,7 +36,7 @@ public:
   ~DataHandler();
   DataHandler(const std::string&, const std::string&);
 
-  template<size_t S> static void read_header(std::array<uint32_t, S>&,
+  template <size_t S> static void read_header(std::array<uint32_t, S>&,
                                              std::ifstream&);
   void read_feature_vector(const std::string& path);
   void read_feature_labels(const std::string& path);
@@ -51,5 +56,15 @@ public:
   void normalise_data() const;
   void print_class_info() const;
 };
+
+std::tuple<image_t, label_t>
+extract(const Data *d);
+
+std::tuple<std::vector<image_t>, std::vector<label_t>>
+extract(const data_vec_t *data);
+
+std::tuple<std::vector<std::vector<image_t>>, std::vector<std::vector<label_t>>>
+extract(const data_batch_t& batched_data);
+
 
 #endif //DATA_HANDLER_HPP

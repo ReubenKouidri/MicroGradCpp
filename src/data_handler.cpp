@@ -4,11 +4,6 @@
 #include <random>
 #include "../include/data_handler.hpp"
 
-using image_t = std::vector<double>;
-using label_t = uint8_t;
-using data_vec_t = std::vector<Data*>;
-using data_batch_t = std::vector<data_vec_t>;
-
 DataHandler::DataHandler() {
   data_array_ = new std::vector<Data*>;
   training_data_ = new std::vector<Data*>;
@@ -215,12 +210,12 @@ void DataHandler::print_class_info() const {
 }
 
 std::tuple<image_t, label_t>
-inline extract(const Data *d) {
+extract(const Data *d) {
   return std::make_tuple(*d->get_feature_vector(), d->get_label());
 }
 
 std::tuple<std::vector<image_t>, std::vector<label_t>>
-inline extract(const data_vec_t *data) {
+extract(const data_vec_t *data) {
   std::vector<image_t> inputs;
   std::vector<label_t> targets;
   inputs.reserve(data->size());
@@ -237,7 +232,7 @@ inline extract(const data_vec_t *data) {
 }
 
 std::tuple<std::vector<std::vector<image_t>>, std::vector<std::vector<label_t>>>
-inline extract(const data_batch_t& batched_data) {
+extract(const data_batch_t& batched_data) {
   std::vector<std::vector<image_t>> img_batch;
   std::vector<std::vector<label_t>> lbl_batch;
   img_batch.reserve(batched_data.size());
