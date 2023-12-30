@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
-#include "../include/module.hpp"
+#include "../include/components.hpp"
 #include "../include/losses.hpp"
 #include "../include/optimiser.hpp"
 
 template <typename T, class Loss, class Input_Tp, class Target_Tp>
-inline void train(Adam<T>& optim,
-                  const Input_Tp& inputs,
-                  const Target_Tp& targets,
-                  Loss& loss,
+inline void train(Adam<T> &optim,
+                  const Input_Tp &inputs,
+                  const Target_Tp &targets,
+                  Loss &loss,
                   const size_t epochs) {
   const auto num_samples = inputs.size();
   for (size_t e = 0; e < epochs; e++) {
@@ -25,7 +25,7 @@ inline void train(Adam<T>& optim,
 }
 
 class AdamTest : public testing::Test {
-protected:
+ protected:
   void SetUp() override {
   }
 

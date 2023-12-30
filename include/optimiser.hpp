@@ -5,26 +5,25 @@
 #include <iostream>
 #include <memory>
 #include <vector>
-#include <ranges>
 #include "module.hpp"
 #include "value.hpp"
 
 // CRTP base class
 template <class Derived, typename T>
 class Optimiser {
-protected:
+ protected:
   std::unique_ptr<MLP<T>> model_;
   double step_size_;
   size_t t_{};
   double clip_val_;
 
-public:
-  Optimiser(MLP<T>* model, double step_size, double clip_val);
+ public:
+  Optimiser(MLP<T> *model, double step_size, double clip_val);
 
   virtual ~Optimiser() = default;
 
   void step() {
-    static_cast<Derived*>(this)->step_impl();
+    static_cast<Derived *>(this)->step_impl();
   }
 
   void zero_grad();
@@ -32,7 +31,7 @@ public:
 
 template <typename T>
 class Adam final : public Optimiser<Adam<T>, T> {
-  friend class Optimiser<Adam<T>, T>;  /* grant access to base */
+  friend class Optimiser<Adam<T>, T>;  // grant access to base
 
   double beta_1_;
   double beta_2_;
@@ -40,8 +39,8 @@ class Adam final : public Optimiser<Adam<T>, T> {
   std::vector<double> m_;
   std::vector<double> v_;
 
-public:
-  explicit Adam(MLP<T>* model, double step_size = 1e-3,
+ public:
+  explicit Adam(MLP<T> *model, double step_size = 1e-3,
                 double beta_1 = 0.9, double beta_2 = 0.999,
                 double eps = 1e-8, double clip_val = 1.0);
 

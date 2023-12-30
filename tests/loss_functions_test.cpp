@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
-#include "../include/module.hpp"
+#include "../include/components.hpp"
 #include "../include/losses.hpp"
-#include "../include/utils.hpp"
+#include "../include/optimiser.hpp"
 
 class LossFunctionsTest : public testing::Test {
 protected:
@@ -23,7 +23,7 @@ protected:
 
   const Layer<double> layer0 {3, 3, UnaryOp::relu};
   const Layer<double> layer1 {3, 2, UnaryOp::softmax};
-  MLP<double> model { {layer0, layer1} };
+  MLP<double> model {{layer0, layer1}};
   SparseCCELoss<double> sparse_cce_loss {model, learning_rate};
   CCELoss<double> cce_loss {model, learning_rate};
   MSELoss<double> mse_loss {model, learning_rate};

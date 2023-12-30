@@ -3,7 +3,7 @@
 #include "../include/data_handler.hpp"
 
 class DataHandlerTest : public testing::Test {
-protected:
+ protected:
   void SetUp() override {
   }
   const std::string image_file = "../data/train-images-idx3-ubyte";
@@ -21,7 +21,7 @@ TEST_F(DataHandlerTest, read_header) {
   ASSERT_EQ(header[3], 28);
   bytes_file.close();
 
-  std::array<uint32_t, 2> header2 {};
+  std::array<uint32_t, 2> header2{};
   bytes_file.open(label_file, std::ios::binary);
   DataHandler::read_header(header2, bytes_file);
   ASSERT_EQ(header2[0], 2049);
@@ -33,7 +33,7 @@ TEST_F(DataHandlerTest, read_features) {
   dh.read_feature_vector(image_file);
   ASSERT_EQ(dh.get_image_size(), 784);
   ASSERT_EQ(dh.get_all_data()->size(), 60000);
-  for (const auto* d : *dh.get_all_data()) {
+  for (const auto *d : *dh.get_all_data()) {
     ASSERT_EQ(d->get_label(), 0);
   }
   dh.read_feature_labels(label_file);

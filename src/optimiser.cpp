@@ -1,4 +1,5 @@
 #include "../include/optimiser.hpp"
+#include "../include/model.hpp"
 
 template <class Derived, typename T>
 Optimiser<Derived, T>::Optimiser(MLP<T> *model,
@@ -10,7 +11,7 @@ Optimiser<Derived, T>::Optimiser(MLP<T> *model,
 
 template <class Derived, typename T>
 void Optimiser<Derived, T>::zero_grad() {
-  for (const auto& p : model_->get_parameters())
+  for (const auto &p : model_->get_parameters())
     p->zero_grad();
 }
 
@@ -48,29 +49,31 @@ void Adam<T>::step_impl() {
     **/
 
   this->t_++;
-  const auto& params = this->model_->get_parameters();
-  std::for_each(params.begin(), params.end(), [&](auto& p) {
+  const auto &params = this->model_->get_parameters();
+  std::for_each(params.begin(), params.end(), [&](auto &p) {
     p->get_grad() = std::clamp(p->get_grad(), -this->clip_val_,
                                this->clip_val_);
   });
 
   for (size_t i = 0; i < m_.size(); i++) {
-    m_[i] = beta_1_ * m_[i] + (1 - beta_1_) * params[i]->get_grad();
-    v_[i] = beta_2_ * v_[i] + (1 - beta_2_) *
-                              std::pow(params[i]->get_grad(), 2);
+    m_[i] = beta_1_*m_[i] + (1 - beta_1_)*params[i]->get_grad();
+    v_[i] = beta_2_*v_[i] + (1 - beta_2_)*
+        std::pow(params[i]->get_grad(), 2);
   }
 
-  const auto alpha_t = this->step_size_ *
-                       std::sqrt(1 - std::pow(beta_2_, this->t_)) /
-                       (1 - std::pow(beta_1_, this->t_));
-  const double eps_p = eps_ * std::sqrt(1 - std::pow(beta_2_, this->t_));
+  const auto alpha_t = this->step_size_*
+      std::sqrt(1 - std::pow(beta_2_, this->t_))/
+      (1 - std::pow(beta_1_, this->t_));
+  const double eps_p = eps_*std::sqrt(1 - std::pow(beta_2_, this->t_));
 
   size_t idx = 0;
-  for (auto& param : params) {
-    param->get_data() -= alpha_t * m_[idx] / (std::sqrt(v_[idx]) + eps_p);
+  for (auto &param : params) {
+    param->get_data() -= alpha_t*m_[idx]/(std::sqrt(v_[idx]) + eps_p);
     ++idx;
   }
 }
 
-template class Optimiser<Adam<double>, double>;
-template class Adam<double>;
+template
+class Optimiser<Adam<double>, double>;
+template
+class Adam<double>;

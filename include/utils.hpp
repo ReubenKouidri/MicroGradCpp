@@ -8,9 +8,9 @@
 template <typename T>
 class MLP;
 
-inline void visualise_input(const std::vector<double>& input) {
+inline void visualise_input(const std::vector<double> &input) {
   for (size_t i = 0; i < input.size(); i++) {
-    if (i % 28 == 0) std::cout << '\n';
+    if (i%28==0) std::cout << '\n';
     if (input[i] < 0.33 && input[i] >= 0) std::cout << '.';
     else if (input[i] >= 0.33 && input[i] < 0.66) std::cout << '*';
     else if (input[i] >= 0.66 && input[i] <= 1.0) std::cout << '#';
@@ -19,7 +19,7 @@ inline void visualise_input(const std::vector<double>& input) {
 }
 
 template <typename T>
-void print_output(const std::vector<Value<T>>& output) {
+void print_output(const std::vector<Value<T>> &output) {
   std::cout << "Output(";
   auto it = output.begin();
   while (it < output.end() - 1) {
@@ -29,7 +29,7 @@ void print_output(const std::vector<Value<T>>& output) {
   std::cout << *it << ")\n";
 }
 
-inline void print_target(const std::vector<uint8_t>& target) {
+inline void print_target(const std::vector<uint8_t> &target) {
   std::cout << "Target(";
   auto it = target.begin();
   while (it < target.end() - 1) {
@@ -47,11 +47,11 @@ inline void print_target(const uint8_t target) {
   print_target(ohe);
 }
 
-template<typename T, class Loss, class Input_Tp, class Target_Tp>
-void train_model(MLP<T>& model,
-                 const Input_Tp& inputs,
-                 const Target_Tp& targets,
-                 Loss& loss,
+template <typename T, class Loss, class Input_Tp, class Target_Tp>
+void train_model(MLP<T> &model,
+                 const Input_Tp &inputs,
+                 const Target_Tp &targets,
+                 Loss &loss,
                  const double learning_rate,
                  const size_t epochs) {
   const auto num_samples = inputs.size();
@@ -66,7 +66,7 @@ void train_model(MLP<T>& model,
       loss.zero();
     }
     std::cout << "Epoch " << e << ": "
-              << "Loss = " << epoch_loss / num_samples
+              << "Loss = " << epoch_loss/num_samples
               << '\n';
   }
 }

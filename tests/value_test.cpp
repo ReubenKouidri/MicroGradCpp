@@ -2,7 +2,7 @@
 #include "../include/value.hpp"
 
 class ValueTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {
   }
 
@@ -61,7 +61,7 @@ TEST_F(ValueTest, GradientRegistrationSub) {
 }
 
 TEST_F(ValueTest, GradientRegistrationMul) {
-  auto t = t2 * t3;
+  auto t = t2*t3;
   EXPECT_EQ(t.get_data(), 6.0);
   EXPECT_EQ(t2.get_data(), 2);
   EXPECT_EQ(t3.get_data(), 3);
@@ -83,7 +83,7 @@ TEST_F(ValueTest, GradientRegistrationMul) {
   EXPECT_EQ(t3.get_data(), 3.0);
   EXPECT_EQ(t3.get_grad(), 1.0);
 
-  auto s = s2 * s3;
+  auto s = s2*s3;
   s.backward();
   EXPECT_EQ(s.get_data(), 0.06);
   EXPECT_EQ(s2.get_data(), 0.2);
@@ -91,12 +91,10 @@ TEST_F(ValueTest, GradientRegistrationMul) {
   EXPECT_EQ(s3.get_data(), 0.3);
   EXPECT_EQ(s3.get_grad(), 0.2);
 
-
-
 }
 
 TEST_F(ValueTest, GradientRegistrationDiv) {
-  auto divide = t1 / t2;
+  auto divide = t1/t2;
   divide.backward();
   EXPECT_EQ(divide.get_data(), 0.5);
   EXPECT_EQ(divide.get_grad(), 1.0);
