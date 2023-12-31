@@ -4,8 +4,8 @@
 #include "value.hpp"
 #include "module.hpp"
 
-// Base class to inherit from
-template <class T, class Target_Tp>
+// CRTP
+template <class Derived, typename T, class Target_Tp>
 class Loss {
  public:
   using input_type = std::vector<T>;
@@ -14,60 +14,55 @@ class Loss {
   using batched_target_type = std::vector<target_type>;
 
  protected:
-  MLP<T> network_;
-  double learning_rate_;
+  MLP<T> *model_;
   Value<T> value_{static_cast<T>(0)};
   static constexpr T eps_ = 1e-7;
-  static constexpr T alpha_ = 10;
 
  public:
-  explicit Loss(const MLP<T> &network, const double learning_rate)
-      : network_(network), learning_rate_(learning_rate) {}
+  constexpr explicit Loss(MLP<T> *model = nullptr)
+      : model_(model) {}
   virtual ~Loss() = default;
   Loss(const Loss &other) = delete;
   Loss(Loss &&other) = delete;
   Loss &operator=(const Loss &other) = delete;
   Loss &operator=(Loss &&other) = delete;
 
-  virtual void compute_loss(const input_type &input,
-                            const target_type &target) = 0;
-  virtual void compute_loss(const batched_input_type &batched_input,
-                            const batched_target_type &batched_target) {
+  constexpr void compute_loss(const input_type &input,
+                              const target_type &target) {
+    static_cast<Derived *>(this)->compute_loss_impl(input, target);
+  }
+  constexpr void compute_loss(const batched_input_type &batched_input,
+                              const batched_target_type &batched_target) {
     for (size_t i = 0; i < batched_input.size(); ++i) {
       compute_loss(batched_input[i], batched_target[i]);
     }
     value_ /= static_cast<T>(batched_input.size());
   }
 
-  virtual void zero() { value_ = Value(static_cast<T>(0)); }
+  constexpr void zero() { value_ = Value(static_cast<T>(0)); }
   virtual void clamp(Output<T> &output) {
     for (auto &val : output) {
       val.get_data() = std::clamp(val.get_data(),
                                   this->eps_, 1 - this->eps_);
     }
   }
-  virtual T get() { return value_.get_data(); }
-  virtual void backward() { value_.backward(); }
-
+  constexpr T get() const { return value_.get_data(); }
+  constexpr void backward() { value_.backward(); }
 };
 
 /*============================================================================*/
 template <class T>
-class SparseCCELoss final : public Loss<T, uint8_t> {
+class SparseCCELoss final : public Loss<SparseCCELoss<T>, T, uint8_t> {
+  friend class Loss<SparseCCELoss<T>, T, uint8_t>;
  public:
-  using Loss = Loss<T, uint8_t>;
-  using typename Loss::input_type;
-  using typename Loss::target_type;
-  using typename Loss::batched_input_type;
-  using typename Loss::batched_target_type;
-
-  using Loss::Loss;  // Inherit constructor
+  using Loss = Loss<SparseCCELoss<T>, T, uint8_t>;
+  using Loss::Loss;
   using Loss::compute_loss;
 
   // Implement compute_loss for single input
-  void compute_loss(const input_type &input,
-                    const target_type &target) override {
-    auto outputs = this->network_(input);
+  constexpr void compute_loss_impl(const Loss::input_type &input,
+                                   const Loss::target_type &target) {
+    auto outputs = this->model_->operator()(input);
     this->clamp(outputs);
     this->value_ -= log(outputs[target]);
   }
@@ -76,18 +71,14 @@ class SparseCCELoss final : public Loss<T, uint8_t> {
 /*============================================================================*/
 /* target ohe, e.g. {0,...,1, 0} */
 template <class T>
-class CCELoss final : public Loss<T, std::vector<uint8_t>> {
+class CCELoss final : public Loss<CCELoss<T>, T, std::vector<uint8_t>> {
+  friend class Loss<CCELoss<T>, T, std::vector<uint8_t>>;
  public:
-  using Loss = Loss<T, std::vector<uint8_t>>;
-  using typename Loss::input_type;
-  using typename Loss::target_type;
-  using typename Loss::batched_input_type;
-  using typename Loss::batched_target_type;
-
+  using Loss = Loss<CCELoss<T>, T, std::vector<uint8_t>>;
   using Loss::Loss;
   using Loss::compute_loss;
 
-  size_t get_index(const target_type &target) {
+  size_t get_index(const Loss::target_type &target) const {
     auto it = std::find(target.begin(), target.end(), 1);
     if (it!=target.end()) {
       return std::distance(target.begin(), it);
@@ -96,9 +87,9 @@ class CCELoss final : public Loss<T, std::vector<uint8_t>> {
                              "sparse CCE instead\n");
   }
 
-  void compute_loss(const input_type &input,
-                    const target_type &target) override {
-    auto output = this->network_(input);
+  constexpr void compute_loss_impl(const Loss::input_type &input,
+                                   const Loss::target_type &target) {
+    auto output = this->model_->operator()(input);
     this->clamp(output);
     auto index = get_index(target);
     this->value_ += -log(output[index]);
@@ -109,20 +100,16 @@ class CCELoss final : public Loss<T, std::vector<uint8_t>> {
 /* specialisation for single input, sparse target */
 
 template <class T>
-class MSELoss final : public Loss<T, uint8_t> {
+class MSELoss final : public Loss<MSELoss<T>, T, uint8_t> {
+  friend class Loss<MSELoss<T>, T, uint8_t>;
  public:
-  using Loss = Loss<T, uint8_t>;
-  using typename Loss::input_type;
-  using typename Loss::target_type;
-  using typename Loss::batched_input_type;
-  using typename Loss::batched_target_type;
-
+  using Loss = Loss<MSELoss<T>, T, uint8_t>;
   using Loss::Loss;
   using Loss::compute_loss;
 
-  void compute_loss(const input_type &input,
-                    const target_type &target) override {
-    auto output = this->network_(input);
+  constexpr void compute_loss_impl(const Loss::input_type &input,
+                                   const Loss::target_type &target) {
+    auto output = this->model_->operator()(input);
     this->clamp(output);
 
     for (size_t i = 0; i < output.size(); i++) {

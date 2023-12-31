@@ -2,34 +2,10 @@
 #include "../include/model.hpp"
 
 template <class Derived, typename T>
-Optimiser<Derived, T>::Optimiser(MLP<T> *model,
-                                 const double step_size,
-                                 const double clip_val)
-    : model_(std::make_unique<MLP<T>>(*model)),
-      step_size_(step_size),
-      clip_val_(clip_val) {}
-
-template <class Derived, typename T>
 void Optimiser<Derived, T>::zero_grad() {
   for (const auto &p : model_->get_parameters())
     p->zero_grad();
 }
-
-template <typename T>
-Adam<T>::Adam(MLP<T> *model, const double step_size,
-              const double beta_1, const double beta_2,
-              const double eps, const double clip_val)
-    : Optimiser<Adam<T>, T>(model, step_size, clip_val),
-      beta_1_(beta_1),
-      beta_2_(beta_2),
-      eps_(eps) {
-  const auto size = this->model_->get_parameters().size();
-  m_ = std::vector<double>(size, 0);
-  v_ = std::vector<double>(size, 0);
-}
-
-template <typename T>
-Adam<T>::~Adam() = default;
 
 template <typename T>
 void Adam<T>::step_impl() {
@@ -75,5 +51,6 @@ void Adam<T>::step_impl() {
 
 template
 class Optimiser<Adam<double>, double>;
+
 template
 class Adam<double>;
