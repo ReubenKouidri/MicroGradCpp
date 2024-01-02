@@ -25,7 +25,7 @@ class Value_ {
   void DFS(std::vector<Value_ *> &topological_order,
            std::unordered_set<Value_ *> &visited_nodes) {
     std::stack<Value_ *> stack;
-    stack.push(this);
+    stack.emplace(this);
     while (!stack.empty()) {
       Value_ *node = stack.top();
       stack.pop();
@@ -34,12 +34,12 @@ class Value_ {
         continue;
 
       if (node->track_grad_) {
-        topological_order.push_back(node);
+        topological_order.emplace_back(node);
       } else continue;
 
       for (const auto &parent_ptr : node->get_parent_ptrs()) {
         if (!visited_nodes.contains(parent_ptr.get())) {
-          stack.push(parent_ptr.get());
+          stack.emplace(parent_ptr.get());
         }
       }
     }
@@ -66,6 +66,7 @@ class Value_ {
   const T &get_grad() const { return grad_; }
   T &get_data() { return data_; }
   T &get_grad() { return grad_; }
+
   const std::vector<std::shared_ptr<Value_>> &get_parent_ptrs() const {
     return parents_;
   }
