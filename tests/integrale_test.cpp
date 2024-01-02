@@ -51,7 +51,7 @@ TEST_F(IntegralTest, test_SCCE_single) {
   std::cout << "========================================\n";
   visualise_input(single_image_batch[0]);
   std::cout << static_cast<int>(single_target_batch[0]) << '\n';
-  SparseCCELoss<double> sparse_cce_loss(model, learning_rate);
+  SparseCCELoss<double> sparse_cce_loss(&model);
   train_model(model,
               single_image_batch,
               single_target_batch,

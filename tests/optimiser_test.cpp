@@ -45,7 +45,7 @@ class AdamTest : public testing::Test {
   const Layer<double> layer0{3, 3, UnaryOp::relu};
   const Layer<double> layer1{3, 2, UnaryOp::softmax};
   MLP<double> model{{layer0, layer1}};
-  SparseCCELoss<double> sparse_cce_loss{model, learning_rate};
+  SparseCCELoss<double> sparse_cce_loss{&model};
   Adam<double> adam{&model, learning_rate};
 };
 

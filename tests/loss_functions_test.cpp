@@ -24,15 +24,16 @@ protected:
   const Layer<double> layer0 {3, 3, UnaryOp::relu};
   const Layer<double> layer1 {3, 2, UnaryOp::softmax};
   MLP<double> model {{layer0, layer1}};
-  SparseCCELoss<double> sparse_cce_loss {model, learning_rate};
-  CCELoss<double> cce_loss {model, learning_rate};
-  MSELoss<double> mse_loss {model, learning_rate};
+  SparseCCELoss<double> sparse_cce_loss {&model};
+  CCELoss<double> cce_loss {&model};
+  MSELoss<double> mse_loss {&model};
 };
 
 TEST_F(LossFunctionsTest, test_sparse_cce) {
   std::cout << "========================================\n";
   std::cout << "======= TESTING SPARSE CCE LOSS ========\n";
   std::cout << "========================================\n";
+
   train_model(model,
                 input,
                 tgt,
