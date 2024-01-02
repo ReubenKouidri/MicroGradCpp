@@ -33,16 +33,19 @@ class Value_ {
       if (!visited_nodes.insert(node).second)
         continue;
 
-      topological_order.push_back(node);
-      for (auto &parent_ptr : node->get_parent_ptrs()) {
+      if (node->track_grad_) {
+        topological_order.push_back(node);
+      } else continue;
+
+      for (const auto &parent_ptr : node->get_parent_ptrs()) {
         if (!visited_nodes.contains(parent_ptr.get())) {
           stack.push(parent_ptr.get());
         }
       }
     }
   }
-
   T data_{static_cast<T>(0)};
+  bool track_grad_{true};
   T grad_{static_cast<T>(0)};
   std::vector<std::shared_ptr<Value_>> parents_;
   std::function<void()> backward_ = do_nothing;
@@ -51,6 +54,8 @@ class Value_ {
   Value_(const T &data, const std::vector<std::shared_ptr<Value_>> &parents) :
       data_(data), parents_(parents) {}
   explicit Value_(const T &data) : data_(data) {}
+  explicit Value_(const T &data, const bool &track_grad)
+      : data_(data), track_grad_(track_grad) {}
   ~Value_() = default;
   Value_(const Value_ &) = delete;
   Value_(Value_ &&) = delete;
@@ -111,10 +116,13 @@ class Value {
   }
   Value() { ptr_ = std::make_shared<Value_<T>>(static_cast<T>(0)); }
   explicit Value(const T &data) { ptr_ = std::make_shared<Value_<T>>(data); }
+  explicit Value(const T &data, const bool track_grad) {
+    ptr_ = std::make_shared<Value_<T>>(data, track_grad);
+  }
   ~Value() { ptr_ = nullptr; }
   Value(const Value &other) { ptr_ = other.ptr_; }
   Value(Value &&other) noexcept {
-    ptr_ = other.ptr_;
+    ptr_ = std::move(other.ptr_);
     other.ptr_ = nullptr;
   }
 
@@ -125,7 +133,7 @@ class Value {
   }
 
   Value &operator=(Value &&other) noexcept {
-    ptr_ = other.ptr_;
+    ptr_ = std::move(other.ptr_);
     other.ptr_ = nullptr;
     return *this;
   }
@@ -140,19 +148,15 @@ class Value {
 
   void zero_grad() { ptr_->grad_ = static_cast<T>(0); }
 
-  T &get_data() const { return ptr_->get_data(); }
+  const T &get_data() const { return ptr_->get_data(); }
 
   const T &get_grad() const { return ptr_->get_grad(); }
 
-  void set_data(const T val) { ptr_->get_data() = val; }
+  T &get_data() { return ptr_->get_data(); }
 
   T &get_grad() { return ptr_->get_grad(); }
 
   void step(const double &learning_rate) { ptr_->step(learning_rate); }
-
-  std::vector<Value_<T> *> build_topo() const {
-    return ptr_->build_topological_order();
-  }
 
   Value operator+(const Value &other) const {
     auto out = Value(get_data() + other.get_data(),
@@ -240,6 +244,7 @@ class Value {
   bool operator>(const Value &other) const {
     return get_data() > other.get_data();
   }
+
   bool operator<(const Value &other) const { return !(*this > other); }
 };
 
