@@ -85,7 +85,7 @@ Value<T> Neuron<T>::operator()(const std::vector<Value<T>> &input) const {
   }
   Value<T> rval = bias_;
   for (size_t i = 0; i < input.size(); i++) {
-    rval += input[i]*weights_[i];
+    if (input[i].get_data() != 0) rval += input[i]*weights_[i];
   }
   if (activation_==UnaryOp::relu)
     return relu(rval);
