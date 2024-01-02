@@ -1,6 +1,7 @@
 #ifndef LOSSES_HPP
 #define LOSSES_HPP
 
+#include <chrono>
 #include "value.hpp"
 #include "module.hpp"
 
@@ -14,13 +15,13 @@ class Loss {
   using batched_target_type = std::vector<target_type>;
 
  protected:
-  MLP<T> *model_;
+  const std::shared_ptr<const MLP<T>> mptr_;
   Value<T> value_{static_cast<T>(0)};
-  static constexpr T eps_ = 1e-7;
+  static constexpr T eps_{1e-7};
 
  public:
-  constexpr explicit Loss(MLP<T> *model = nullptr)
-      : model_(model) {}
+  constexpr explicit Loss(const std::shared_ptr<const MLP<T>> mptr)
+      : mptr_(mptr) {}
   virtual ~Loss() = default;
   Loss(const Loss &other) = delete;
   Loss(Loss &&other) = delete;
@@ -31,23 +32,24 @@ class Loss {
                               const target_type &target) {
     static_cast<Derived *>(this)->compute_loss_impl(input, target);
   }
-  constexpr void compute_loss(const batched_input_type &batched_input,
-                              const batched_target_type &batched_target) {
+  void compute_loss(const batched_input_type &batched_input,
+                    const batched_target_type &batched_target) {
     for (size_t i = 0; i < batched_input.size(); ++i) {
       compute_loss(batched_input[i], batched_target[i]);
     }
     value_ /= static_cast<T>(batched_input.size());
+    std::cout << "Batch loss: " << value_.get_data() << '\n';
   }
 
-  constexpr void zero() { value_ = Value(static_cast<T>(0)); }
+  constexpr void zero() noexcept { value_ = Value(static_cast<T>(0)); }
   virtual void clamp(Output<T> &output) {
     for (auto &val : output) {
       val.get_data() = std::clamp(val.get_data(),
                                   this->eps_, 1 - this->eps_);
     }
   }
-  constexpr T get() const { return value_.get_data(); }
-  constexpr void backward() { value_.backward(); }
+  constexpr T get() const noexcept { return value_.get_data(); }
+  constexpr void backward() noexcept { value_.backward(); }
 };
 
 /*============================================================================*/
@@ -60,9 +62,9 @@ class SparseCCELoss final : public Loss<SparseCCELoss<T>, T, uint8_t> {
   using Loss::compute_loss;
 
   // Implement compute_loss for single input
-  constexpr void compute_loss_impl(const Loss::input_type &input,
-                                   const Loss::target_type &target) {
-    auto outputs = this->model_->operator()(input);
+  void compute_loss_impl(const Loss::input_type &input,
+                         const Loss::target_type &target) {
+    auto outputs = this->mptr_->operator()(input);
     this->clamp(outputs);
     this->value_ -= log(outputs[target]);
   }
@@ -78,7 +80,7 @@ class CCELoss final : public Loss<CCELoss<T>, T, std::vector<uint8_t>> {
   using Loss::Loss;
   using Loss::compute_loss;
 
-  size_t get_index(const Loss::target_type &target) const {
+  static size_t get_index(const std::vector<uint8_t> &target) {
     auto it = std::find(target.begin(), target.end(), 1);
     if (it!=target.end()) {
       return std::distance(target.begin(), it);
@@ -87,18 +89,16 @@ class CCELoss final : public Loss<CCELoss<T>, T, std::vector<uint8_t>> {
                              "sparse CCE instead\n");
   }
 
-  constexpr void compute_loss_impl(const Loss::input_type &input,
-                                   const Loss::target_type &target) {
-    auto output = this->model_->operator()(input);
+  void compute_loss_impl(const Loss::input_type &input,
+                         const Loss::target_type &target) {
+    auto output = this->mptr_->operator()(input);
     this->clamp(output);
-    auto index = get_index(target);
-    this->value_ += -log(output[index]);
+    const auto index = get_index(target);
+    this->value_ -= log(output[index]);
   }
 };
 
 /*============================================================================*/
-/* specialisation for single input, sparse target */
-
 template <class T>
 class MSELoss final : public Loss<MSELoss<T>, T, uint8_t> {
   friend class Loss<MSELoss<T>, T, uint8_t>;
@@ -107,9 +107,9 @@ class MSELoss final : public Loss<MSELoss<T>, T, uint8_t> {
   using Loss::Loss;
   using Loss::compute_loss;
 
-  constexpr void compute_loss_impl(const Loss::input_type &input,
-                                   const Loss::target_type &target) {
-    auto output = this->model_->operator()(input);
+  void compute_loss_impl(const Loss::input_type &input,
+                         const Loss::target_type &target) {
+    auto output = this->mptr_->operator()(input);
     this->clamp(output);
 
     for (size_t i = 0; i < output.size(); i++) {
