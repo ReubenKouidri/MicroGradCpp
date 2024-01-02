@@ -14,7 +14,8 @@ class MLP final : public Module<T> {
   MLP &operator=(const MLP &other) noexcept = delete;
   MLP(MLP &&other) noexcept = delete;
   MLP &operator=(MLP &&other) noexcept = delete;
-  explicit MLP(std::vector<Layer<T>> layers);
+  explicit MLP(const std::vector<Layer<T>> &layers);
+  explicit MLP(std::vector<Layer<T>> &&layers) noexcept;
   ParamVector<T> get_parameters() const override;
   void step(double learning_rate) const;
   void zero_grad() const;

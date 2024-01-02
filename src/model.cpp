@@ -4,11 +4,19 @@ template <typename T>
 MLP<T>::MLP(const MLP &other) : layers_(other.layers_) {}
 
 template <typename T>
-MLP<T>::MLP(std::vector<Layer<T>> layers) : layers_(std::move(layers)) {}
+MLP<T>::MLP(const std::vector<Layer<T>> &layers) : layers_(layers) {}
+
+template <typename T>
+MLP<T>::MLP(std::vector<Layer<T>> &&layers) noexcept {
+  layers_ = std::move(layers);
+}
 
 template <class T>
-ParamVector<T> MLP<T>::get_parameters() const {
+[[nodiscard]] ParamVector<T> MLP<T>::get_parameters() const {
   ParamVector<T> params;
+  size_t total_params = 0;
+  for (const auto &l : layers_) total_params += l.num_params();
+  params.reserve(total_params);
   for (const auto &l : layers_) {
     auto lparams = l.get_parameters();
     params.insert(params.end(), lparams.begin(), lparams.end());
@@ -43,9 +51,8 @@ template <typename T>
 Output<T> MLP<T>::operator()(const std::vector<T> &input) const {
   std::vector<Value<T>> new_input;
   new_input.reserve(input.size());
-  for (const auto &val : input) {
-    new_input.emplace_back(Value(static_cast<T>(val)));
-  }
+  for (const auto &val : input)
+    new_input.emplace_back(Value(static_cast<T>(val), false));
   return operator()(new_input);
 }
 
