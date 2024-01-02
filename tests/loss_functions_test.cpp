@@ -2,7 +2,7 @@
 #include "../include/components.hpp"
 #include "../include/losses.hpp"
 #include "../include/optimiser.hpp"
-#include "trainer.hpp"
+#include "../include/trainer.hpp"
 
 class LossFunctionsTest : public testing::Test {
  protected:
