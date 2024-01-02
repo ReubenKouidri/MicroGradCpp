@@ -1,8 +1,11 @@
 #include "../include/layer.hpp"
 
 template <typename T>
-Layer<T>::Layer(const size_t nin, const size_t nout, const UnaryOp &activation)
-    : activation_(activation) {
+Layer<T>::Layer(const size_t nin,
+                const size_t nout,
+                const UnaryOp &activation)
+    : activation_(activation),
+      num_params_(nout*(nin + 1)) {
   neurons_.reserve(nout);
   for (size_t i = 0; i < nout; i++) {
     neurons_.emplace_back(Neuron<T>(nin, nout, activation));
@@ -10,19 +13,23 @@ Layer<T>::Layer(const size_t nin, const size_t nout, const UnaryOp &activation)
 }
 
 template <typename T>
-Layer<T>::Layer(const Layer &other) : neurons_(other.neurons_),
-                                      activation_(other.activation_) {}
+Layer<T>::Layer(const Layer &other)
+    : neurons_(other.neurons_),
+      activation_(other.activation_),
+      num_params_(other.num_params_) {}
 
 template <typename T>
 Layer<T>::Layer(Layer &&other) noexcept
     : neurons_(std::move(other.neurons_)),
-      activation_(other.activation_) {}
+      activation_(std::move(other.activation_)),
+      num_params_(other.num_params_) {}
 
 template <typename T>
 Layer<T> &Layer<T>::operator=(const Layer &other) {
   if (this!=&other) {
     neurons_ = other.neurons_;
     activation_ = other.activation_;
+    num_params_ = other.num_params_;
   }
   return *this;
 }
@@ -32,6 +39,7 @@ Layer<T> &Layer<T>::operator=(Layer &&other) noexcept {
   if (this!=&other) {
     neurons_ = std::move(other.neurons_);
     activation_ = other.activation_;
+    num_params_ = other.num_params_;
   }
   return *this;
 }
@@ -39,6 +47,7 @@ Layer<T> &Layer<T>::operator=(Layer &&other) noexcept {
 template <typename T>
 ParamVector<T> Layer<T>::get_parameters() const {
   ParamVector<T> params;
+  params.reserve(num_params_);
   for (const auto &n : neurons_) {
     auto temp = n.get_parameters();
     params.insert(params.end(), temp.begin(), temp.end());

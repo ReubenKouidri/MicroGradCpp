@@ -9,6 +9,7 @@ template <typename T>
 class Layer final : public Module<T> {
   std::vector<Neuron<T>> neurons_;
   UnaryOp activation_;
+  size_t num_params_;
 
  public:
   Layer(size_t nin, size_t nout, const UnaryOp &activation);
@@ -19,6 +20,7 @@ class Layer final : public Module<T> {
   Output<T> operator()(const std::vector<Value<T>> &inputs) const;
   Output<T> operator()(const std::vector<T> &input) const;
   [[nodiscard]] ParamVector<T> get_parameters() const override;
+  [[nodiscard]] constexpr size_t num_params() const { return num_params_; }
 };
 
 #endif //LAYER_HPP
