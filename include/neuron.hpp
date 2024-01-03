@@ -19,6 +19,7 @@ class Neuron final : public Module<T> {
   [[nodiscard]] ParamVector<T> get_parameters() const override;
   Value<T> operator()(const std::vector<Value<T>> &input) const;
   Value<T> operator()(const std::vector<T> &input) const;
+  [[nodiscard]] T predict(const std::vector<T> &input) const;
 };
 
 #endif //NEURON_HPP

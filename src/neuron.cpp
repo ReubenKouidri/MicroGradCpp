@@ -71,9 +71,9 @@ ParamVector<T> Neuron<T>::get_parameters() const {
   ParamVector<T> rvec;
   rvec.reserve(weights_.size() + 1);
   for (const auto &w : weights_) {
-    rvec.emplace_back(std::make_shared<Value<T>>(w));
+    rvec.emplace_back(std::make_shared < Value < T >> (w));
   }
-  rvec.emplace_back(std::make_shared<Value<T>>(bias_));
+  rvec.emplace_back(std::make_shared < Value < T >> (bias_));
   return rvec;
 }
 
@@ -85,7 +85,7 @@ Value<T> Neuron<T>::operator()(const std::vector<Value<T>> &input) const {
   }
   Value<T> rval = bias_;
   for (size_t i = 0; i < input.size(); i++) {
-    if (input[i].get_data() != 0) rval += input[i]*weights_[i];
+    if (input[i].get_data()!=0) rval += input[i]*weights_[i];
   }
   if (activation_==UnaryOp::relu)
     return relu(rval);
@@ -99,6 +99,19 @@ Value<T> Neuron<T>::operator()(const std::vector<T> &input) const {
     rval += input[i]*weights_[i];
   }
   return rval;
+}
+
+template <typename T>
+T Neuron<T>::predict(const std::vector<T> &input) const {
+  T output = bias_.get_data();
+  if (input.size()!=weights_.size()) {
+    throw std::invalid_argument(
+        "Vector sizes must be of equal length for dot product calculation.");
+  }
+  for (size_t i{0}; i < input.size(); i++) {
+    output += weights_[i].get_data()*input[i];
+  }
+  return std::max(output, static_cast<T>(0));
 }
 
 template

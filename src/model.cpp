@@ -56,5 +56,20 @@ Output<T> MLP<T>::operator()(const std::vector<T> &input) const {
   return operator()(new_input);
 }
 
+template <typename T>
+uint8_t MLP<T>::predict(const std::vector<T> &input) const {
+  std::vector<T> out = input;
+  for (const auto &layer : layers_) {
+    out = layer.predict(out);
+  }
+  auto max_iter = std::max_element(out.begin(), out.end());
+  if (max_iter != out.end()) {
+    return static_cast<uint8_t>(std::distance(out.begin(), max_iter));
+  } else {
+    std::cout << "Vector is empty" << std::endl;
+    return 255;
+  }
+}
+
 template
 class MLP<double>;

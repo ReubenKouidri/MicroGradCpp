@@ -21,6 +21,7 @@ class MLP final : public Module<T> {
   void zero_grad() const;
   Output<T> operator()(const std::vector<Value<T>> &inputs) const;
   Output<T> operator()(const std::vector<T> &input) const;
+  uint8_t predict(const std::vector<T> &input) const;
 };
 
 #endif //MODEL_HPP

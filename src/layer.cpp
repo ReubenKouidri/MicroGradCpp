@@ -86,5 +86,15 @@ Output<T> Layer<T>::operator()(const std::vector<T> &input) const {
   return operator()(new_input);
 }
 
+template <typename T>
+[[nodiscard]] std::vector<T> Layer<T>::predict(const std::vector<T> &input) const {
+  std::vector<T> out;
+  out.reserve(neurons_.size());
+  for (const auto &n : neurons_) {
+    out.emplace_back(n.predict(input));
+  }
+  return out;
+}
+
 template
 class Layer<double>;

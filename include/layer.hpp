@@ -20,7 +20,8 @@ class Layer final : public Module<T> {
   Output<T> operator()(const std::vector<Value<T>> &inputs) const;
   Output<T> operator()(const std::vector<T> &input) const;
   [[nodiscard]] ParamVector<T> get_parameters() const override;
-  [[nodiscard]] constexpr size_t num_params() const { return num_params_; }
+  [[nodiscard]] constexpr size_t num_params() const noexcept { return num_params_; }
+  [[nodiscard]] std::vector<T> predict(const std::vector<T> &input) const;
 };
 
 #endif //LAYER_HPP
