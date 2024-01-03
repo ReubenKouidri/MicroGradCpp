@@ -11,7 +11,7 @@ DataHandler::DataHandler() {
   test_data_ = new std::vector<Data *>;
 }
 
-DataHandler::DataHandler(const std::string &image_path,
+[[maybe_unused]] DataHandler::DataHandler(const std::string &image_path,
                          const std::string &label_path)
     : DataHandler() {
   read_feature_vector(image_path);
