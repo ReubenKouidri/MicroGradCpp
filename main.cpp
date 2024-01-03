@@ -6,68 +6,52 @@
 #include "include/data_handler.hpp"
 #include "include/losses.hpp"
 #include "include/optimiser.hpp"
+#include "include/trainer.hpp"
 
-template <typename T, class Loss>
-inline void train_batched(const MLP<T> *const model,
-                          const std::vector<typename Loss::batched_input_type> &inputs,
-                          const std::vector<typename Loss::batched_target_type> &targets,
-                          Loss &loss,
-                          Adam<T> &optimiser,
-                          const size_t epochs) {
-  const auto num_batches = inputs.size();
-  for (size_t e = 0; e < epochs; e++) {
-    double epoch_loss = 0;
-
-    for (size_t i = 0; i < num_batches; i++) {
-      auto start = std::chrono::high_resolution_clock::now();
-      loss.compute_loss(inputs[i], targets[i]);
-      auto end = std::chrono::high_resolution_clock::now();
-      std::chrono::duration<double> duration{end - start};
-      std::cout << "batch " << i+1 << "/" << num_batches << " forward: " << duration.count() << " seconds\n";
-      epoch_loss += loss.get();
-
-      start = std::chrono::high_resolution_clock::now();
-      loss.backward();
-      end = std::chrono::high_resolution_clock::now();
-      duration = end - start;
-      std::cout << "backward: " << duration.count() << " seconds\n";
-
-      optimiser.step();
-      model->zero_grad();
-      loss.zero();
-    }
-    std::cout << "Epoch " << e << ": "
-              << "Loss = " << epoch_loss/num_batches
-              << '\n';
-  }
-}
+constexpr size_t batch_size = 100;
+constexpr size_t epochs = 1;
+constexpr double learning_rate = 1e-3;
 
 int main() {
-  // test loop
-  // print results
 
   const std::string image_file{"data/t10k-images-idx3-ubyte"};
   const std::string label_file{"data/t10k-labels-idx1-ubyte"};
+
   const auto dh{DataHandler(image_file, label_file)};
   const size_t image_size = dh.get_image_size();
   const size_t num_classes = dh.num_classes();
-  constexpr size_t batch_size = 50;
-  constexpr size_t epochs = 2;
-  auto batched_data{dh.get_batched_test_data(batch_size)};
-  std::vector<std::vector<image_t>> batched_images;
-  std::vector<std::vector<label_t>> batched_targets;
-  std::tie(batched_images, batched_targets) = extract(batched_data);
+  auto batched_training_data{dh.get_batched_training_data(batch_size)};
+  auto validation_data{dh.get_validation_data()};
+
+  std::vector<std::vector<image_t>> batched_training_images;
+  std::vector<std::vector<label_t>> batched_training_targets;
+  std::vector<image_t> validation_images;
+  std::vector<label_t> validation_targets;
+
+  std::tie(batched_training_images,
+           batched_training_targets) = extract(batched_training_data);
+  std::tie(validation_images,
+           validation_targets) = extract(validation_data);
 
   const MLP<double> model({
-                              Layer<double>{image_size, 128, UnaryOp::relu},
-                              Layer<double>{128, num_classes, UnaryOp::softmax}
+                              Layer<double>{image_size, 32, UnaryOp::relu},
+                              Layer<double>{32, num_classes, UnaryOp::softmax}
                           });
-  const MLP<double> *const mp = &model;
-  auto adam{Adam<double>(mp, 0.01)};
+  const std::shared_ptr<const MLP<double>>
+      mp = std::make_shared<MLP<double>>(model);
+  auto adam{Adam<double>(mp, learning_rate)};
   auto loss{SparseCCELoss<double>(mp)};
 
   std::cout << "Running...\n";
-  train_batched(mp, batched_images, batched_targets, loss, adam, epochs);
+  train_batched_dataset(mp,
+                        batched_training_images,
+                        batched_training_targets,
+                        validation_images,
+                        validation_targets,
+                        loss,
+                        adam,
+                        epochs);
+
   std::cout << "Done\n";
 
   return 0;
