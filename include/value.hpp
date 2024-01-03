@@ -22,6 +22,7 @@ class Value_ {
     os << "Value(" << val.get_data() << ", " << val.get_grad() << ")";
     return os;
   }
+
   void DFS(std::vector<Value_ *> &topological_order,
            std::unordered_set<Value_ *> &visited_nodes) {
     std::stack<Value_ *> stack;
@@ -44,6 +45,14 @@ class Value_ {
       }
     }
   }
+
+  std::vector<Value_ *> build_topological_order() {
+    std::vector<Value_ *> topological_order;
+    std::unordered_set<Value_ *> visited_nodes;
+    DFS(topological_order, visited_nodes);
+    return topological_order;
+  }
+
   T data_{static_cast<T>(0)};
   bool track_grad_{true};
   T grad_{static_cast<T>(0)};
@@ -51,8 +60,8 @@ class Value_ {
   std::function<void()> backward_ = do_nothing;
 
  public:
-  Value_(const T &data, const std::vector<std::shared_ptr<Value_>> &parents) :
-      data_(data), parents_(parents) {}
+  Value_(const T &data, const std::vector<std::shared_ptr<Value_>> &parents)
+      : data_(data), parents_(parents) {}
   explicit Value_(const T &data) : data_(data) {}
   explicit Value_(const T &data, const bool &track_grad)
       : data_(data), track_grad_(track_grad) {}
@@ -62,30 +71,22 @@ class Value_ {
   Value_ &operator=(const Value_ &other) = delete;
   Value_ &operator=(Value_ &&other) = delete;
 
-  const T &get_data() const { return data_; }
-  const T &get_grad() const { return grad_; }
-  T &get_data() { return data_; }
-  T &get_grad() { return grad_; }
+  const T &get_data() const noexcept { return data_; }
+  const T &get_grad() const noexcept { return grad_; }
+  T &get_data() noexcept { return data_; }
+  T &get_grad() noexcept { return grad_; }
 
-  const std::vector<std::shared_ptr<Value_>> &get_parent_ptrs() const {
+  std::vector<std::shared_ptr<Value_>> &get_parent_ptrs() noexcept {
     return parents_;
   }
-  void zero_grad() { grad_ = static_cast<T>(0); }
+  constexpr void zero_grad() noexcept { grad_ = static_cast<T>(0); }
   void set_backward(const std::function<void()> &func) { backward_ = func; }
-  void step(const double &learning_rate) { data_ -= learning_rate*grad_; }
-
-  std::vector<Value_ *> build_topological_order() {
-    std::vector<Value_ *> topological_order;
-    std::unordered_set<Value_ *> visited_nodes;
-    DFS(topological_order, visited_nodes);
-    return topological_order;
-  }
 
   void backward() {
     auto topo = build_topological_order();
     T clip_threshold = 1; // This is a hyperparameter
-    grad_ = static_cast<T>(1); // Set dx/dx=1
-    for (const auto node : topo) {
+    grad_ = static_cast<T>(1); // Set dx/dx=1 for loss Node ONLY
+    for (auto &node : topo) {
       node->grad_ = std::clamp(node->grad_, -clip_threshold, clip_threshold);
       node->backward_();
     }
@@ -141,23 +142,17 @@ class Value {
 
   std::shared_ptr<Value_<T>> get_ptr() const { return ptr_; }
 
-  void set_backward(std::function<void()> func) const {
+  void set_backward(const std::function<void()> &func) const noexcept {
     ptr_->set_backward(func);
   }
 
-  void backward() const { ptr_->backward(); }
+  void backward() const noexcept { ptr_->backward(); }
+  void zero_grad() const noexcept { ptr_->grad_ = static_cast<T>(0); }
 
-  void zero_grad() { ptr_->grad_ = static_cast<T>(0); }
-
-  const T &get_data() const { return ptr_->get_data(); }
-
-  const T &get_grad() const { return ptr_->get_grad(); }
-
-  T &get_data() { return ptr_->get_data(); }
-
-  T &get_grad() { return ptr_->get_grad(); }
-
-  void step(const double &learning_rate) { ptr_->step(learning_rate); }
+  const T &get_data() const noexcept { return ptr_->get_data(); }
+  const T &get_grad() const noexcept { return ptr_->get_grad(); }
+  T &get_data() noexcept { return ptr_->get_data(); }
+  T &get_grad() noexcept { return ptr_->get_grad(); }
 
   Value operator+(const Value &other) const {
     auto out = Value(get_data() + other.get_data(),
