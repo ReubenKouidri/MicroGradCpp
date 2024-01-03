@@ -49,7 +49,7 @@ class Loss {
     }
   }
   constexpr T get() const noexcept { return value_.get_data(); }
-  constexpr void backward() noexcept { value_.backward(); }
+  void backward() noexcept { value_.backward(); }
 };
 
 /*============================================================================*/

@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <vector>
-#include "data.hpp"
 
 template <typename T>
 class MLP;
@@ -45,30 +44,6 @@ inline void print_target(const uint8_t target) {
   std::vector<uint8_t> ohe(len, 0);
   ohe[target] = 1;
   print_target(ohe);
-}
-
-template <typename T, class Loss, class Input_Tp, class Target_Tp>
-void train_model(MLP<T> &model,
-                 const Input_Tp &inputs,
-                 const Target_Tp &targets,
-                 Loss &loss,
-                 const double learning_rate,
-                 const size_t epochs) {
-  const auto num_samples = inputs.size();
-  for (size_t e = 0; e < epochs; e++) {
-    double epoch_loss = 0;
-    for (size_t i = 0; i < num_samples; i++) {
-      loss.compute_loss(inputs, targets);
-      epoch_loss += loss.get();
-      loss.backward();
-      model.step(learning_rate);
-      model.zero_grad();
-      loss.zero();
-    }
-    std::cout << "Epoch " << e << ": "
-              << "Loss = " << epoch_loss/num_samples
-              << '\n';
-  }
 }
 
 #endif //UTILS_HPP
