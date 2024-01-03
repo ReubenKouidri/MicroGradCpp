@@ -25,13 +25,6 @@ template <class T>
 }
 
 template <class T>
-void MLP<T>::step(const double learning_rate) const {
-  for (const auto &p : get_parameters()) {
-    p->step(learning_rate);
-  }
-}
-
-template <class T>
 void MLP<T>::zero_grad() const {
   for (const auto &p : get_parameters()) {
     p->zero_grad();
