@@ -3,7 +3,7 @@
 
 template <class Derived, typename T>
 void Optimiser<Derived, T>::zero_grad() {
-  for (const auto &p : model_->get_parameters())
+  for (const auto &p : mptr_->get_parameters())
     p->zero_grad();
 }
 
@@ -25,7 +25,7 @@ void Adam<T>::step_impl() {
     **/
 
   this->t_++;
-  const auto &params = this->model_->get_parameters();
+  const auto &params = this->mptr_->get_parameters();
   std::for_each(params.begin(), params.end(), [&](auto &p) {
     p->get_grad() = std::clamp(p->get_grad(), -this->clip_val_,
                                this->clip_val_);
