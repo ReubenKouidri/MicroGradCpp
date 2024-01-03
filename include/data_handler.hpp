@@ -5,9 +5,9 @@
 #include <map>
 #include "data.hpp"
 
-static constexpr double TRAIN_SPLIT = 0.80;
-static constexpr double VALIDATION_SPLIT = 0.10;
-static constexpr double TEST_SPLIT = 0.10;
+inline constexpr double TRAIN_SPLIT = 0.80;
+inline constexpr double VALIDATION_SPLIT = 0.10;
+inline constexpr double TEST_SPLIT = 0.10;
 
 using image_t = std::vector<double>;
 using label_t = uint8_t;
@@ -34,7 +34,11 @@ class DataHandler {
  public:
   DataHandler();
   ~DataHandler();
-  DataHandler(const std::string &, const std::string &);
+  [[maybe_unused]] DataHandler(const std::string &, const std::string &);
+  DataHandler(const DataHandler &) = delete;
+  DataHandler(DataHandler &&) = delete;
+  DataHandler &operator=(const DataHandler &) = delete;
+  DataHandler &operator=(DataHandler &&) = delete;
 
   template <size_t S>
   static void read_header(std::array<uint32_t, S> &,
