@@ -10,6 +10,8 @@ template <typename T, class Loss, class Optimiser>
 void train_batched_dataset(const std::shared_ptr<const MLP<T>> &model,
                            const std::vector<typename Loss::batched_input_type> &batched_img_ds,
                            const std::vector<typename Loss::batched_target_type> &batched_tgt_ds,
+                           const std::vector<typename Loss::input_type> &eval_imgs,
+                           const std::vector<typename Loss::target_type> &eval_tgts,
                            Loss &loss,
                            Optimiser &optimiser,
                            const size_t epochs) {
@@ -21,6 +23,7 @@ void train_batched_dataset(const std::shared_ptr<const MLP<T>> &model,
       train_single_batch(model, batched_img_ds[i], batched_tgt_ds[i], loss, optimiser);
       epoch_loss += loss.get();
       loss.zero();
+      evaluate_model(model, eval_imgs, eval_tgts);
     }
     std::cout << "Epoch " << e << ": " << "Loss = " << epoch_loss/num_batches
               << '\n';
@@ -82,5 +85,21 @@ void train_model(const std::shared_ptr<const MLP<T>> &model,
   }
 }
 
+template <typename T>
+void evaluate_model(const std::shared_ptr<const MLP<T>> &model,
+                    const std::vector<std::vector<T>> &eval_imgs,
+                    const std::vector<uint8_t> &eval_tgts) {
+  std::vector<uint8_t> preds;
+  preds.reserve(eval_tgts.size());
+  for (const auto &img : eval_imgs) {
+    preds.emplace_back(model->predict(img));
+  }
+
+  double correct = 0;
+  for (size_t i = 0; i < eval_tgts.size(); i++) {
+    if (preds[i] == eval_tgts[i]) correct++;
+  }
+  std::cout << "Accuracy = " << correct/eval_imgs.size() << '\n';
+}
 
 #endif //INCLUDE_TRAINER_HPP_
