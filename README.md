@@ -1,5 +1,6 @@
-A ground-up implementation of an autograd engine, demonstrated on dummy data as well as MNIST.
+A ground-up implementation of an autograd engine:
 
-During the forward pass, node operations and backward hooks are registered.
-The computational graph is constructed from the loss node via DFS and the partial derivative of the loss w.r.t. the model's 
-parameters is automatically propagated through the graph. The optimiser then updates the model weights.
+  - The computational DAG is implicitly registered during the forward pass.
+  - Each time a node is constructed via an operation (e.g. +-/*, pow, exp, relu, etc...) the corresponding backward function is registered on the result node.
+  - The DAG is explicitly constructed from the loss node via a DFS, and the gradients are propagated through the graph by calling .backward() on this node.
+  - The optimiser then steps through the model's parameters updating the weights (currently only Adam is implemented).
