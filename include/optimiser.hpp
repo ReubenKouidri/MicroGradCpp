@@ -13,9 +13,9 @@ template <class Derived, typename T>
 class Optimiser {
  protected:
   const std::shared_ptr<const MLP<T>> mptr_;
-  double step_size_;
+  const double step_size_;
   size_t t_{};
-  double clip_val_;
+  const double clip_val_;
 
  public:
   constexpr explicit Optimiser(const std::shared_ptr<const MLP<T>> model,
@@ -27,10 +27,9 @@ class Optimiser {
 
   virtual ~Optimiser() = default;
 
-  constexpr void step() {
+  void step() {
     static_cast<Derived *>(this)->step_impl();
   }
-
   void zero_grad();
 };
 
@@ -38,9 +37,9 @@ template <typename T>
 class Adam final : public Optimiser<Adam<T>, T> {
   friend class Optimiser<Adam<T>, T>;  // grant access to base
 
-  double beta_1_;
-  double beta_2_;
-  double eps_;
+  const double beta_1_;
+  const double beta_2_;
+  const double eps_;
   std::vector<double> m_;
   std::vector<double> v_;
 
