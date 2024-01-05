@@ -54,8 +54,8 @@ class Value_ {
   }
 
   T data_{static_cast<T>(0)};
-  bool track_grad_{true};
   T grad_{static_cast<T>(0)};
+  bool track_grad_{true};
   std::vector<std::shared_ptr<Value_>> parents_;
   std::function<void()> backward_ = do_nothing;
 
@@ -79,7 +79,7 @@ class Value_ {
   std::vector<std::shared_ptr<Value_>> &get_parent_ptrs() noexcept {
     return parents_;
   }
-  constexpr void zero_grad() noexcept { grad_ = static_cast<T>(0); }
+  void zero_grad() noexcept { grad_ = static_cast<T>(0); }
   void set_backward(const std::function<void()> &func) { backward_ = func; }
 
   void backward() {
@@ -142,17 +142,17 @@ class Value {
 
   std::shared_ptr<Value_<T>> get_ptr() const { return ptr_; }
 
-  void set_backward(const std::function<void()> &func) const noexcept {
+  void set_backward(const std::function<void()> &func) const {
     ptr_->set_backward(func);
   }
-
-  void backward() const noexcept { ptr_->backward(); }
-  void zero_grad() const noexcept { ptr_->grad_ = static_cast<T>(0); }
 
   const T &get_data() const noexcept { return ptr_->get_data(); }
   const T &get_grad() const noexcept { return ptr_->get_grad(); }
   T &get_data() noexcept { return ptr_->get_data(); }
   T &get_grad() noexcept { return ptr_->get_grad(); }
+
+  void backward() const noexcept { ptr_->backward(); }
+  void zero_grad() const noexcept { ptr_->grad_ = static_cast<T>(0); }
 
   Value operator+(const Value &other) const {
     auto out = Value(get_data() + other.get_data(),

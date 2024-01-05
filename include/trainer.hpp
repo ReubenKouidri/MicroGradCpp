@@ -18,15 +18,17 @@ void train_batched_dataset(const std::shared_ptr<const MLP<T>> &model,
 
   const auto num_batches = batched_img_ds.size();
   for (size_t e = 0; e < epochs; e++) {
+    std::cout << "============ Training ============\n";
+    std::cout << "Epoch " << e+1 << '/' << epochs <<'\n';
     double epoch_loss = 0;
     for (size_t i = 0; i < num_batches; i++) {
       train_single_batch(model, batched_img_ds[i], batched_tgt_ds[i], loss, optimiser);
       epoch_loss += loss.get();
       loss.zero();
+      std::cout << "Batch " << i+1 << '/' << num_batches << ", ";
       evaluate_model(model, eval_imgs, eval_tgts);
     }
-    std::cout << "Epoch " << e << ": " << "Loss = " << epoch_loss/num_batches
-              << '\n';
+    std::cout << "Epoch loss" << ": " << epoch_loss/num_batches << '\n';
   }
 }
 

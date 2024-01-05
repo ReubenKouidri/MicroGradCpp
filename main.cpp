@@ -20,8 +20,8 @@ int main() {
   const auto dh{DataHandler(image_file, label_file)};
   const size_t image_size = dh.get_image_size();
   const size_t num_classes = dh.num_classes();
-  auto batched_training_data{dh.get_batched_training_data(batch_size)};
-  auto validation_data{dh.get_validation_data()};
+  const auto batched_training_data{dh.get_batched_training_data(batch_size)};
+  const auto validation_data{dh.get_validation_data()};
 
   std::vector<std::vector<image_t>> batched_training_images;
   std::vector<std::vector<label_t>> batched_training_targets;
@@ -42,7 +42,6 @@ int main() {
   auto adam{Adam<double>(mp, learning_rate)};
   auto loss{SparseCCELoss<double>(mp)};
 
-  std::cout << "Running...\n";
   train_batched_dataset(mp,
                         batched_training_images,
                         batched_training_targets,

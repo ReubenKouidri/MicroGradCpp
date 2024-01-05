@@ -38,7 +38,6 @@ class Loss {
       compute_loss(batched_input[i], batched_target[i]);
     }
     value_ /= static_cast<T>(batched_input.size());
-    std::cout << "Batch loss: " << value_.get_data() << '\n';
   }
 
   constexpr void zero() noexcept { value_ = Value(static_cast<T>(0)); }
