@@ -11,7 +11,7 @@ MLP<T>::MLP(std::vector<Layer<T>> &&layers) noexcept {
   layers_ = std::move(layers);
 }
 
-template <class T>
+template <typename T>
 [[nodiscard]] ParamVector<T> MLP<T>::get_parameters() const {
   ParamVector<T> params;
   size_t total_params = 0;
@@ -24,14 +24,14 @@ template <class T>
   return params;
 }
 
-template <class T>
+template <typename T>
 void MLP<T>::zero_grad() const {
   for (const auto &p : get_parameters()) {
     p->zero_grad();
   }
 }
 
-template <class T>
+template <typename T>
 Output<T> MLP<T>::operator()(const std::vector<Value<T>> &inputs) const {
   auto output = inputs;
   for (const auto &l : layers_) {

@@ -7,7 +7,6 @@
 
 inline constexpr double TRAIN_SPLIT = 0.80;
 inline constexpr double VALIDATION_SPLIT = 0.10;
-inline constexpr double TEST_SPLIT = 0.10;
 
 using image_t = std::vector<double>;
 using label_t = uint8_t;

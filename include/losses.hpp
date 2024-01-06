@@ -52,7 +52,7 @@ class Loss {
 };
 
 /*============================================================================*/
-template <class T>
+template <typename T>
 class SparseCCELoss final : public Loss<SparseCCELoss<T>, T, uint8_t> {
   friend class Loss<SparseCCELoss<T>, T, uint8_t>;
  public:
@@ -71,7 +71,7 @@ class SparseCCELoss final : public Loss<SparseCCELoss<T>, T, uint8_t> {
 
 /*============================================================================*/
 /* target ohe, e.g. {0,...,1, 0} */
-template <class T>
+template <typename T>
 class CCELoss final : public Loss<CCELoss<T>, T, std::vector<uint8_t>> {
   friend class Loss<CCELoss<T>, T, std::vector<uint8_t>>;
  public:
@@ -98,7 +98,7 @@ class CCELoss final : public Loss<CCELoss<T>, T, std::vector<uint8_t>> {
 };
 
 /*============================================================================*/
-template <class T>
+template <typename T>
 class MSELoss final : public Loss<MSELoss<T>, T, uint8_t> {
   friend class Loss<MSELoss<T>, T, uint8_t>;
  public:
