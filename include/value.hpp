@@ -162,12 +162,13 @@ class Value {
   }
 
   Value operator+(const T &other) const {
-    auto temp = Value(other);
+    const auto temp = Value(other);
     return operator+(temp);
   }
 
   Value &operator+=(const T &other) {
-    return operator+=(Value(other));
+    const auto temp = Value(other);
+    return operator+=(temp);
   }
 
   Value &operator+=(const Value &other) {
@@ -193,7 +194,7 @@ class Value {
   }
 
   Value operator/(const Value &other) const {
-    auto out = pow(other, static_cast<T>(-1));
+    const auto out = pow(other, static_cast<T>(-1));
     return operator*(out);
   }
 
@@ -208,7 +209,7 @@ class Value {
   }
 
   Value &operator/=(const T &other) {
-    auto temp = Value(other);
+    const auto temp = Value(other);
     return operator/=(temp);
   }
 
@@ -230,7 +231,8 @@ class Value {
   }
 
   Value &operator*=(const T &other) {
-    return operator*=(Value(other));
+    const auto temp = Value(other);
+    return operator*=(temp);
   }
 
   Value operator-() {
