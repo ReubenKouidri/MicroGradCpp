@@ -1,13 +1,13 @@
 #include "../include/layer.hpp"
 
 template <typename T>
-Layer<T>::Layer(const size_t nin,
-                const size_t nout,
+Layer<T>::Layer(const std::size_t nin,
+                const std::size_t nout,
                 const UnaryOp &activation)
     : activation_(activation),
       num_params_(nout*(nin + 1)) {
   neurons_.reserve(nout);
-  for (size_t i = 0; i < nout; i++) {
+  for (std::size_t i = 0; i < nout; i++) {
     neurons_.emplace_back(Neuron<T>(nin, nout, activation));
   }
 }

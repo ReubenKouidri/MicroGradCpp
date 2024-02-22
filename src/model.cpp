@@ -14,7 +14,7 @@ MLP<T>::MLP(std::vector<Layer<T>> &&layers) noexcept {
 template <typename T>
 [[nodiscard]] ParamVector<T> MLP<T>::get_parameters() const {
   ParamVector<T> params;
-  size_t total_params = 0;
+  std::size_t total_params = 0;
   for (const auto &l : layers_) total_params += l.num_params();
   params.reserve(total_params);
   for (const auto &l : layers_) {

@@ -29,10 +29,10 @@ Neuron<T>::Neuron(const Neuron &other) {
 }
 
 template <typename T>
-Neuron<T>::Neuron(const size_t nin, const size_t nout,
+Neuron<T>::Neuron(const std::size_t nin, const std::size_t nout,
                   const UnaryOp &activation)
     : activation_(activation) {
-  for (size_t i = 0; i < nin; i++) {
+  for (std::size_t i = 0; i < nin; i++) {
     weights_.emplace_back(
         Value<T>(generate_weight<T>(activation, nin, nout)));
     bias_ = Value<T>(1e-5);
@@ -84,7 +84,7 @@ Value<T> Neuron<T>::operator()(const std::vector<Value<T>> &input) const {
         "Vector sizes must be of equal length for dot product calculation.");
   }
   Value<T> rval = bias_;
-  for (size_t i = 0; i < input.size(); i++) {
+  for (std::size_t i = 0; i < input.size(); i++) {
     if (input[i].get_data()!=0) rval += input[i]*weights_[i];
   }
   if (activation_==UnaryOp::relu)
@@ -95,7 +95,7 @@ Value<T> Neuron<T>::operator()(const std::vector<Value<T>> &input) const {
 template <typename T>
 Value<T> Neuron<T>::operator()(const std::vector<T> &input) const {
   auto rval = bias_;
-  for (size_t i = 0; i < input.size(); i++) {
+  for (std::size_t i = 0; i < input.size(); i++) {
     rval += input[i]*weights_[i];
   }
   return rval;
@@ -108,7 +108,7 @@ T Neuron<T>::predict(const std::vector<T> &input) const {
     throw std::invalid_argument(
         "Vector sizes must be of equal length for dot product calculation.");
   }
-  for (size_t i{0}; i < input.size(); i++) {
+  for (std::size_t i{0}; i < input.size(); i++) {
     output += weights_[i].get_data()*input[i];
   }
   return std::max(output, static_cast<T>(0));

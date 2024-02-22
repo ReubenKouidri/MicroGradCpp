@@ -37,7 +37,7 @@ void DataHandler::read_feature_vector(const std::string &path) {
   std::ifstream bytes_file(path, std::ios::binary);
   read_header(header, bytes_file);
 
-  const size_t image_size = header[2]*header[3];
+  const std::size_t image_size = header[2]*header[3];
   image_size_ = image_size;
 
   while (bytes_file) {
@@ -55,13 +55,13 @@ void DataHandler::read_feature_vector(const std::string &path) {
   std::cout << "Done extracting " << header[1] << " images\n";
 }
 
-template <size_t S>
+template <std::size_t S>
 void DataHandler::read_header(std::array<uint32_t, S> &header,
                               std::ifstream &bytes_file) {
   if (!bytes_file)
     throw std::runtime_error("Failed to open file.\n");
 
-  for (size_t i = 0; i < header.size(); ++i) {
+  for (std::size_t i = 0; i < header.size(); ++i) {
     if (!bytes_file.read(reinterpret_cast<char *>(&header[i]),
                          sizeof(uint32_t)))
       throw std::runtime_error(
@@ -76,7 +76,7 @@ void DataHandler::read_feature_labels(const std::string &path) {
   std::ifstream bytes_file(path, std::ios::binary);
   read_header(header, bytes_file);
 
-  for (size_t i = 0; i < header[1]; ++i) {
+  for (std::size_t i = 0; i < header[1]; ++i) {
     uint8_t label;
     if (!bytes_file.read(reinterpret_cast<char *>(&label), sizeof(uint8_t)))
       throw std::runtime_error(
@@ -88,7 +88,7 @@ void DataHandler::read_feature_labels(const std::string &path) {
   count_classes();
 }
 
-void DataHandler::append_data(const std::vector<size_t> &indices,
+void DataHandler::append_data(const std::vector<std::size_t> &indices,
                               std::vector<Data *> *dataset,
                               std::vector<Data *> *subset) {
   for (const auto index : indices) {
@@ -97,23 +97,23 @@ void DataHandler::append_data(const std::vector<size_t> &indices,
 }
 
 void DataHandler::split_data() const {
-  const size_t train_size = data_array_->size()*TRAIN_SPLIT;
-  const size_t validation_size = data_array_->size()*VALIDATION_SPLIT;
+  const std::size_t train_size = data_array_->size()*TRAIN_SPLIT;
+  const std::size_t validation_size = data_array_->size()*VALIDATION_SPLIT;
 
-  std::vector<size_t> indices(total_length_);
+  std::vector<std::size_t> indices(total_length_);
   std::iota(indices.begin(), indices.end(), 0);
 
   std::random_device rd;
   std::mt19937 g(rd());
   std::ranges::shuffle(indices, g);
 
-  const std::vector<size_t> train_indices(
+  const std::vector<std::size_t> train_indices(
       indices.begin(),
       indices.begin() + static_cast<long>(train_size));
-  const std::vector<size_t> validation_indices(
+  const std::vector<std::size_t> validation_indices(
       indices.begin() + static_cast<long>(train_size),
       indices.begin() + static_cast<long>(train_size + validation_size));
-  const std::vector<size_t> test_indices(
+  const std::vector<std::size_t> test_indices(
       indices.begin() + static_cast<long>(train_size + validation_size),
       indices.end());
 
@@ -136,8 +136,8 @@ void DataHandler::count_classes() {
   }
 }
 
-size_t DataHandler::get_image_size() const { return image_size_; }
-size_t DataHandler::num_classes() const { return class_map_.size(); }
+std::size_t DataHandler::get_image_size() const { return image_size_; }
+std::size_t DataHandler::num_classes() const { return class_map_.size(); }
 
 const std::vector<Data *> *DataHandler::get_all_data() const {
   return data_array_;
@@ -155,18 +155,18 @@ const std::vector<Data *> *DataHandler::get_test_data() const {
 
 std::vector<std::vector<Data *>> DataHandler::batch_dataset(
     const std::vector<Data *> *dataset,
-    const size_t batch_size) {
+    const std::size_t batch_size) {
   std::vector<std::vector<Data *>> batched_data;
 
   if (batch_size==0 || dataset->empty()) {
     throw std::runtime_error("Invalid batch size or empty dataset.");
   }
 
-  const size_t num_batches = (dataset->size() + batch_size - 1)/batch_size;
+  const std::size_t num_batches = (dataset->size() + batch_size - 1)/batch_size;
   batched_data.reserve(num_batches);
 
   auto data_iter = dataset->cbegin();
-  for (size_t i = 0; i < num_batches; ++i) {
+  for (std::size_t i = 0; i < num_batches; ++i) {
     const auto current_batch_size = std::min(
         batch_size,
         dataset->size() - i*batch_size);
@@ -179,17 +179,17 @@ std::vector<std::vector<Data *>> DataHandler::batch_dataset(
 }
 
 std::vector<std::vector<Data *>>
-DataHandler::get_batched_training_data(const size_t batch_size) const {
+DataHandler::get_batched_training_data(const std::size_t batch_size) const {
   return batch_dataset(training_data_, batch_size);
 }
 
 std::vector<std::vector<Data *>>
-DataHandler::get_batched_validation_data(const size_t batch_size) const {
+DataHandler::get_batched_validation_data(const std::size_t batch_size) const {
   return batch_dataset(validation_data_, batch_size);
 }
 
 std::vector<std::vector<Data *>>
-DataHandler::get_batched_test_data(const size_t batch_size) const {
+DataHandler::get_batched_test_data(const std::size_t batch_size) const {
   return batch_dataset(test_data_, batch_size);
 }
 
