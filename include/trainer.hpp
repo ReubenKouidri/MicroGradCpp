@@ -15,14 +15,14 @@ void train_batched_dataset(const std::shared_ptr<const MLP<T>> &model,
                            const std::vector<typename Loss::target_type> &eval_tgts,
                            Loss &loss,
                            Optimiser &optimiser,
-                           const size_t epochs) {
+                           const std::size_t epochs) {
 
   const auto num_batches = batched_img_ds.size();
-  for (size_t e = 0; e < epochs; e++) {
+  for (std::size_t e = 0; e < epochs; e++) {
     std::cout << "============ Training ============\n";
     std::cout << "Epoch " << e + 1 << '/' << epochs << '\n';
     double epoch_loss = 0;
-    for (size_t i = 0; i < num_batches; i++) {
+    for (std::size_t i = 0; i < num_batches; i++) {
       train_single_batch(model, batched_img_ds[i], batched_tgt_ds[i], loss, optimiser);
       epoch_loss += loss.get();
       loss.zero();
@@ -52,9 +52,9 @@ void train_single_image(const std::shared_ptr<const MLP<T>> &model,
                         const std::vector<typename Loss::target_type> &tgts,
                         Loss &loss,
                         Optimiser &optimiser,
-                        const size_t epochs) {
-  for (size_t e = 0; e < epochs; e++) {
-    for (size_t i{0}; i < imgs.size(); i++) {
+                        const std::size_t epochs) {
+  for (std::size_t e = 0; e < epochs; e++) {
+    for (std::size_t i{0}; i < imgs.size(); i++) {
       loss.compute_loss(imgs[i], tgts[i]);
       loss.backward();
       optimiser.step();
@@ -71,11 +71,11 @@ void train_model(const std::shared_ptr<const MLP<T>> &model,
                  const Target_Tp &targets,
                  Loss &loss,
                  Optimiser &optimiser,
-                 const size_t epochs) {
+                 const std::size_t epochs) {
   const auto num_samples = inputs.size();
-  for (size_t e = 0; e < epochs; e++) {
+  for (std::size_t e = 0; e < epochs; e++) {
     double epoch_loss = 0;
-    for (size_t i = 0; i < num_samples; i++) {
+    for (std::size_t i = 0; i < num_samples; i++) {
       loss.compute_loss(inputs, targets);
       epoch_loss += loss.get();
       loss.backward();
