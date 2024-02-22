@@ -14,13 +14,13 @@ class Optimiser {
  protected:
   const std::shared_ptr<const MLP<T>> mptr_;
   const double step_size_;
-  size_t t_{};
+  std::size_t t_{};
   const double clip_val_;
 
  public:
   constexpr explicit Optimiser(const std::shared_ptr<const MLP<T>> model,
-                               double step_size,
-                               double clip_val)
+                               const double step_size,
+                               const double clip_val)
       : mptr_(model),
         step_size_(step_size),
         clip_val_(clip_val) {}
@@ -35,7 +35,7 @@ class Optimiser {
 
 template <typename T>
 class Adam final : public Optimiser<Adam<T>, T> {
-  friend class Optimiser<Adam<T>, T>;  // grant access to base
+  friend class Optimiser<Adam, T>;  // grant access to base
 
   const double beta_1_;
   const double beta_2_;
@@ -45,10 +45,10 @@ class Adam final : public Optimiser<Adam<T>, T> {
 
  public:
   constexpr explicit Adam(const std::shared_ptr<const MLP<T>> model,
-                          double step_size = 1e-3,
-                          double beta_1 = 0.9, double beta_2 = 0.999,
-                          double eps = 1e-8, double clip_val = 1.0)
-      : Optimiser<Adam<T>, T>(model, step_size, clip_val),
+                          const double step_size = 1e-3,
+                          const double beta_1 = 0.9, const double beta_2 = 0.999,
+                          const double eps = 1e-8, const double clip_val = 1.0)
+      : Optimiser<Adam, T>(model, step_size, clip_val),
         beta_1_(beta_1),
         beta_2_(beta_2),
         eps_(eps) {
