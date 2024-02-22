@@ -2,10 +2,7 @@
 #include "../include/model.hpp"
 
 template <class Derived, typename T>
-void Optimiser<Derived, T>::zero_grad() {
-  for (const auto &p : mptr_->get_parameters())
-    p->zero_grad();
-}
+void Optimiser<Derived, T>::zero_grad() { for (const auto &p : mptr_->get_parameters()) p->zero_grad(); }
 
 template <typename T>
 void Adam<T>::step_impl() {
@@ -24,28 +21,25 @@ void Adam<T>::step_impl() {
     end while \n
     **/
 
-  this->t_++;
+  ++this->t_;
+
+  const auto alpha_t = this->step_size_ *
+    std::sqrt(1 - std::pow(beta_2_, this->t_)) /
+    (1 - std::pow(beta_1_, this->t_));
+
+  const double eps_p = eps_ * std::sqrt(1 - std::pow(beta_2_, this->t_));
+
   const auto &params = this->mptr_->get_parameters();
-  std::for_each(params.begin(), params.end(), [&](auto &p) {
-    p->get_grad() = std::clamp(p->get_grad(), -this->clip_val_,
-                               this->clip_val_);
+  std::ranges::for_each(params, [this](auto &param) {
+    param->get_grad() = std::clamp(
+      param->get_grad(), -this->clip_val_, this->clip_val_);
   });
 
   for (std::size_t i = 0; i < m_.size(); i++) {
-    m_[i] = beta_1_*m_[i] + (1 - beta_1_)*params[i]->get_grad();
-    v_[i] = beta_2_*v_[i] + (1 - beta_2_)*
-        std::pow(params[i]->get_grad(), 2);
-  }
-
-  const auto alpha_t = this->step_size_*
-      std::sqrt(1 - std::pow(beta_2_, this->t_))/
-      (1 - std::pow(beta_1_, this->t_));
-  const double eps_p = eps_*std::sqrt(1 - std::pow(beta_2_, this->t_));
-
-  std::size_t idx = 0;
-  for (auto &param : params) {
-    param->get_data() -= alpha_t*m_[idx]/(std::sqrt(v_[idx]) + eps_p);
-    ++idx;
+    m_[i] = beta_1_ * m_[i] + (1 - beta_1_) * params[i]->get_grad();
+    v_[i] = beta_2_ * v_[i] + (1 - beta_2_) *
+      std::pow(params[i]->get_grad(), 2);
+    params[i]->get_data() -= alpha_t * m_[i] / (std::sqrt(v_[i]) + eps_p);
   }
 }
 
