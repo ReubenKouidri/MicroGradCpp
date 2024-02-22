@@ -1,21 +1,21 @@
 #ifndef VALUE_HPP
 #define VALUE_HPP
 
+#include "operations.hpp"
 #include <cmath>
 #include <functional>
 #include <stack>
 #include <unordered_set>
 #include <vector>
-#include "operations.hpp"
 
 using namespace ops;
 
-const std::function do_nothing = [] { return; };
+const std::function do_nothing = [] {};
 
 template <typename T>
 class Value_ {
-  template <typename C> friend
-  class Value;
+  template <typename C>
+  friend class Value;
 
   template <typename C>
   friend std::ostream &operator<<(std::ostream &os, const Value_<C> &val) {
@@ -36,7 +36,8 @@ class Value_ {
 
       if (node->track_grad_) {
         topological_order.emplace_back(node);
-      } else continue;
+      } else
+        continue;
 
       for (const auto &parent_ptr : node->get_parent_ptrs()) {
         if (!visited_nodes.contains(parent_ptr.get())) {
@@ -84,8 +85,8 @@ class Value_ {
 
   void backward() {
     auto topo = build_topological_order();
-    T clip_threshold = 1; // This is a hyperparameter
-    grad_ = static_cast<T>(1); // Set dx/dx=1 for loss Node ONLY
+    T clip_threshold = 1;     // This is a hyperparameter
+    grad_ = static_cast<T>(1);// Set dx/dx=1 for loss Node ONLY
     for (auto &node : topo) {
       node->grad_ = std::clamp(node->grad_, -clip_threshold, clip_threshold);
       node->backward_();
@@ -106,9 +107,9 @@ class Value {
   template <typename C>
   friend Value<C> operator-(C num, const Value<C> &val) { return val - num; }
   template <typename C>
-  friend Value<C> operator*(C num, const Value<C> &val) { return val*num; }
+  friend Value<C> operator*(C num, const Value<C> &val) { return val * num; }
   template <typename C>
-  friend Value<C> operator/(C num, const Value<C> &val) { return val/num; }
+  friend Value<C> operator/(C num, const Value<C> &val) { return val / num; }
 
   std::shared_ptr<Value_<T>> ptr_ = nullptr;
 
@@ -129,7 +130,7 @@ class Value {
   }
 
   Value &operator=(const Value &other) {
-    if (&other!=this)
+    if (&other != this)
       ptr_ = other.ptr_;
     return *this;
   }
@@ -204,7 +205,7 @@ class Value {
   }
 
   Value &operator/=(const Value &other) {
-    *this = *this/other;
+    *this = *this / other;
     return *this;
   }
 
@@ -214,7 +215,7 @@ class Value {
   }
 
   Value operator*(const Value &other) const {
-    auto result = Value(get_data()*other.get_data(),
+    auto result = Value(get_data() * other.get_data(),
                         {get_ptr(), other.get_ptr()});
     register_op<T>(this, other, result, BinaryOp::multiply);
     return result;
@@ -226,7 +227,7 @@ class Value {
   }
 
   Value &operator*=(const Value &other) {
-    *this = *this*other;
+    *this = *this * other;
     return *this;
   }
 
@@ -246,4 +247,4 @@ class Value {
   bool operator<(const Value &other) const { return !(*this > other); }
 };
 
-#endif //VALUE_HPP
+#endif//VALUE_HPP

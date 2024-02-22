@@ -8,7 +8,7 @@ template <typename T>
 class MLP;
 
 inline void visualise_input(const std::vector<double> &input) {
-  for (size_t i = 0; i < input.size(); i++) {
+  for (std::size_t i = 0; i < input.size(); i++) {
     if (i%28==0) std::cout << '\n';
     if (input[i] < 0.33 && input[i] >= 0) std::cout << '.';
     else if (input[i] >= 0.33 && input[i] < 0.66) std::cout << '*';
@@ -40,7 +40,7 @@ inline void print_target(const std::vector<uint8_t> &target) {
 
 inline void print_target(const uint8_t target) {
   std::cout << "Target(";
-  constexpr size_t len = 10;
+  constexpr std::size_t len = 10;
   std::vector<uint8_t> ohe(len, 0);
   ohe[target] = 1;
   print_target(ohe);

@@ -11,7 +11,7 @@ class Neuron final : public Module<T> {
   UnaryOp activation_{UnaryOp::relu};
 
  public:
-  Neuron(size_t nin, size_t nout, const UnaryOp &activation);
+  Neuron(std::size_t nin, std::size_t nout, const UnaryOp &activation);
   Neuron(const Neuron &other);
   Neuron(Neuron &&other) noexcept;
   Neuron &operator=(const Neuron &other);

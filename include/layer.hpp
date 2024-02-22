@@ -9,10 +9,10 @@ template <typename T>
 class Layer final : public Module<T> {
   std::vector<Neuron<T>> neurons_;
   UnaryOp activation_;
-  size_t num_params_;
+  std::size_t num_params_;
 
- public:
-  Layer(size_t nin, size_t nout, const UnaryOp &activation);
+public:
+  Layer(std::size_t nin, std::size_t nout, const UnaryOp &activation);
   Layer(const Layer &other);
   Layer(Layer &&other) noexcept;
   Layer &operator=(const Layer &other);
@@ -20,7 +20,7 @@ class Layer final : public Module<T> {
   Output<T> operator()(const std::vector<Value<T>> &inputs) const;
   Output<T> operator()(const std::vector<T> &input) const;
   [[nodiscard]] ParamVector<T> get_parameters() const override;
-  [[nodiscard]] constexpr size_t num_params() const noexcept { return num_params_; }
+  [[nodiscard]] constexpr std::size_t num_params() const noexcept { return num_params_; }
   [[nodiscard]] std::vector<T> predict(const std::vector<T> &input) const;
 };
 

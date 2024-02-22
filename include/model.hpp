@@ -9,7 +9,7 @@ template <typename T>
 class MLP final : public Module<T> {
   std::vector<Layer<T>> layers_;
 
- public:
+public:
   MLP(const MLP &other);
   MLP &operator=(const MLP &other) noexcept = delete;
   MLP(MLP &&other) noexcept = delete;

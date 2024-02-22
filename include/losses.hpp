@@ -36,7 +36,7 @@ class Loss {
   void compute_loss(const batched_input_type &batched_input,
                     const batched_target_type &batched_target) {
     // if C++23 use std::views::zip
-    for (size_t i = 0; i < batched_input.size(); ++i) {
+    for (std::size_t i = 0; i < batched_input.size(); ++i) {
       compute_loss(batched_input[i], batched_target[i]);
     }
     value_ /= static_cast<T>(batched_input.size());
@@ -82,7 +82,7 @@ class CCELoss final : public Loss<CCELoss<T>, T, std::vector<uint8_t>> {
   using Loss::compute_loss;
   using Loss::Loss;
 
-  static size_t get_index(const std::vector<uint8_t> &target) {
+  static std::size_t get_index(const std::vector<uint8_t> &target) {
     return std::ranges::distance(target.begin(), std::ranges::find(target, 1));
   }
 
@@ -109,8 +109,8 @@ class MSELoss final : public Loss<MSELoss<T>, T, uint8_t> {
     auto output = this->mptr_->operator()(input);
     this->clamp(output);
 
-    for (size_t i = 0; i < output.size(); i++) {
-      if (i == static_cast<size_t>(target))
+    for (std::size_t i = 0; i < output.size(); i++) {
+      if (i == static_cast<std::size_t>(target))
         this->value_ += ops::pow(output[i] - 1.0, static_cast<T>(2));
       else
         this->value_ += ops::pow(output[i], static_cast<T>(2));
