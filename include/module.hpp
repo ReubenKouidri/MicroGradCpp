@@ -11,16 +11,15 @@ using Output = std::vector<Value<T>>;
 template <typename T>
 using ParamVector = std::vector<std::shared_ptr<Value<T>>>;
 
-// interface
 template <typename T>
 class Module {
  public:
   virtual ~Module() = default;
   Module() = default;
-  Module(const Module &other) = default;
-  Module(Module &&other) noexcept = default;
-  Module &operator=(const Module &other) = default;
-  Module &operator=(Module &&other) noexcept = default;
+  Module(const Module&) = default;
+  Module(Module&&) noexcept = default;
+  Module& operator=(const Module&) = default;
+  Module& operator=(Module&&) noexcept = default;
   [[nodiscard]] virtual ParamVector<T> get_parameters() const = 0;
 };
 

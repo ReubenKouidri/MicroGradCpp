@@ -8,8 +8,8 @@
 #include "include/optimiser.hpp"
 #include "include/trainer.hpp"
 
-constexpr size_t batch_size = 100;
-constexpr size_t epochs = 1;
+constexpr std::size_t batch_size = 100;
+constexpr std::size_t epochs = 1;
 constexpr double learning_rate = 1e-3;
 
 int main() {
@@ -18,8 +18,8 @@ int main() {
   const std::string label_file{"data/t10k-labels-idx1-ubyte"};
 
   const auto dh{DataHandler(image_file, label_file)};
-  const size_t image_size = dh.get_image_size();
-  const size_t num_classes = dh.num_classes();
+  const std::size_t image_size = dh.get_image_size();
+  const std::size_t num_classes = dh.num_classes();
   const auto batched_training_data{dh.get_batched_training_data(batch_size)};
   const auto validation_data{dh.get_validation_data()};
 

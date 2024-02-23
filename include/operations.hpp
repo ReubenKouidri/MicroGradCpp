@@ -28,9 +28,9 @@ enum class UnaryOp {
 };
 
 template <typename T>
-void register_op(const Value<T> &operand,
-                 Value<T> &result,
-                 const UnaryOp &op) {
+void register_op(const Value<T>& operand,
+                 Value<T>& result,
+                 const UnaryOp& op) {
   Value_<T> *operand_ptr = operand.get_ptr().get();
   Value_<T> *result_ptr = result.get_ptr().get();
 
@@ -39,38 +39,38 @@ void register_op(const Value<T> &operand,
     case UnaryOp::exp:
       backward_function = [operand_ptr, result_ptr]() noexcept {
         operand_ptr->get_grad() +=
-          result_ptr->get_grad() * result_ptr->get_data();
+          result_ptr->get_grad()*result_ptr->get_data();
       };
       break;
     case UnaryOp::ln:
       backward_function = [operand_ptr, result_ptr]() noexcept {
         operand_ptr->get_grad() +=
-          result_ptr->get_grad() / operand_ptr->get_data();
+          result_ptr->get_grad()/operand_ptr->get_data();
       };
       break;
     case UnaryOp::relu:
-      backward_function = [operand_ptr, result_ptr]() noexcept {
-        if (operand_ptr->get_data() > static_cast<T>(0))
-          operand_ptr->get_grad() += result_ptr->get_grad();
-      };
+      backward_function =
+        [operand_ptr, result_ptr]() noexcept {
+          if (operand_ptr->get_data() > static_cast<T>(0))
+            operand_ptr->get_grad() += result_ptr->get_grad();
+        };
       break;
     case UnaryOp::tanh:
       backward_function = [operand_ptr, result_ptr]() noexcept {
         operand_ptr->get_grad() +=
-          (1 - std::pow(result_ptr->get_data(), 2)) * result_ptr->get_grad();
+          (1 - std::pow(result_ptr->get_data(), 2))*result_ptr->get_grad();
       };
       break;
-    default:
-      std::cout << "Error registering exp backward func\n";
+    default: std::cout << "Error registering exp backward func\n";
       break;
   }
   result.set_backward(backward_function);
 }
 
 template <typename T>
-void register_op(const Value<T> &operand,
-                 Value<T> &result,
-                 const UnaryOp &op,
+void register_op(const Value<T>& operand,
+                 Value<T>& result,
+                 const UnaryOp& op,
                  const int e) {
   Value_<T> *result_ptr = result.get_ptr().get();
   Value_<T> *operand_ptr = operand.get_ptr().get();
@@ -80,7 +80,8 @@ void register_op(const Value<T> &operand,
     case UnaryOp::pow:
       backward_function = [operand_ptr, result_ptr, e]() noexcept {
         operand_ptr->get_grad() +=
-          e * std::pow(operand_ptr->get_data(), e - static_cast<T>(1)) * result_ptr->get_grad();
+          e*std::pow(operand_ptr->get_data(), e - static_cast<T>(1))
+            *result_ptr->get_grad();
       };
       break;
     default: std::cout << "Error registering exp backward func\n";
@@ -90,9 +91,9 @@ void register_op(const Value<T> &operand,
 
 template <typename T>
 void register_op(const Value<T> *left_operand,
-                 const Value<T> &right_operand,
-                 Value<T> &result,
-                 const BinaryOp &op) {
+                 const Value<T>& right_operand,
+                 Value<T>& result,
+                 const BinaryOp& op) {
   Value_<T> *result_ptr = result.get_ptr().get();
   Value_<T> *left_ptr = left_operand->get_ptr().get();
   Value_<T> *right_ptr = right_operand.get_ptr().get();
@@ -114,17 +115,18 @@ void register_op(const Value<T> *left_operand,
     case BinaryOp::multiply:
       backward_function = [left_ptr, right_ptr, result_ptr]() noexcept {
         left_ptr->get_grad() +=
-          right_ptr->get_data() * result_ptr->get_grad();
+          right_ptr->get_data()*result_ptr->get_grad();
         right_ptr->get_grad() +=
-          left_ptr->get_data() * result_ptr->get_grad();
+          left_ptr->get_data()*result_ptr->get_grad();
       };
       break;
     case BinaryOp::divide:
       backward_function = [left_ptr, right_ptr, result_ptr]() noexcept {
         left_ptr->get_grad() +=
-          result_ptr->get_grad() / right_ptr->get_data();
+          result_ptr->get_grad()/right_ptr->get_data();
         right_ptr->get_grad() +=
-          -left_ptr->get_data() * result_ptr->get_grad() / std::pow(right_ptr->get_data(), 2);
+          -left_ptr->get_data()*result_ptr->get_grad()
+            /std::pow(right_ptr->get_data(), 2);
       };
       break;
     default:
@@ -135,32 +137,46 @@ void register_op(const Value<T> *left_operand,
 }
 
 template <typename T>
-Value<T> exp(const Value<T> &operand) {
+Value<T> exp(const Value<T>& operand) {
   auto result = Value(std::exp(operand.get_data()), {operand.get_ptr()});
   register_op<T>(operand, result, UnaryOp::exp);
   return result;
 }
 
 template <typename T, typename C>
-Value<T> pow(const Value<T> &obj, const C e) {
+Value<T> pow(const Value<T>& obj, const C e) {
   auto out = Value(std::pow(obj.get_data(), e), {obj.get_ptr()});
   register_op<T>(obj, out, UnaryOp::pow, e);
   return out;
 }
 
 template <typename T>
-Value<T> log(const Value<T> &operand) {
+Value<T> log(const Value<T>& operand) {
   auto result = Value(std::log(operand.get_data()), {operand.get_ptr()});
   register_op<T>(operand, result, UnaryOp::ln);
   return result;
 }
 
 template <typename T>
-Value<T> relu(const Value<T> &operand) {
+Value<T> relu(const Value<T>& operand) {
   T new_data = std::max(static_cast<T>(0), operand.get_data());
   auto result = Value(new_data, {operand.get_ptr()});
   register_op<T>(operand, result, UnaryOp::relu);
   return result;
+}
+
+template <typename T>
+void softmax(std::vector<Value<T>>& output) {
+  /* Inplace softmax operation */
+  const auto max_val = *std::ranges::max_element(
+    output, [&](const Value<T>& a, const Value<T>& b) { return a < b; });
+
+  auto sum = Value<T>(static_cast<T>(0.0));
+  for (auto& o : output) {
+    o = ops::exp(o - max_val);
+    sum += o;
+  }
+  for (auto& o : output) o /= sum;
 }
 };// namespace ops
 

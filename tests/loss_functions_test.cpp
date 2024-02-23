@@ -24,9 +24,9 @@ class LossFunctionsTest : public testing::Test {
   const std::vector<uint8_t> categorical_tgt2{0, 0, 1};
 
   const std::vector<std::vector<uint8_t>> batched_categorical_tgt{
-      categorical_tgt0,
-      categorical_tgt1,
-      categorical_tgt2};
+    categorical_tgt0,
+    categorical_tgt1,
+    categorical_tgt2};
 
   std::vector<std::vector<double>> batched_input{input0, input1, input2};
 
@@ -34,11 +34,11 @@ class LossFunctionsTest : public testing::Test {
   static constexpr size_t epochs = 25;
 
   const MLP<double> model{{
-                              Layer<double>(3, 3, UnaryOp::relu),
-                              Layer<double>(3, 3, UnaryOp::softmax)
+                            Layer<double>(3, 3, UnaryOp::relu),
+                            Layer<double>(3, 3, UnaryOp::softmax)
                           }};
   const std::shared_ptr<const MLP<double>>
-      mp = std::make_shared<MLP<double>>(model);
+    mp = std::make_shared<MLP<double>>(model);
 
   SparseCCELoss<double> sparse_cce_loss{mp};
   Adam<double> adam{mp, learning_rate};
